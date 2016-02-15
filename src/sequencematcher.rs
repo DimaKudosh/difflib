@@ -1,5 +1,5 @@
 use std::cmp::Ordering;
-use utils::slice_str;
+use utils::{slice_str, calculate_ratio};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Match{
@@ -161,5 +161,10 @@ impl<'a> SequenceMatcher<'a>{
 		}
 		self.opcodes = Some(opcodes);
 		return self.opcodes.as_ref().unwrap().clone()
+	}
+
+	pub fn ratio(&mut self) -> f32{
+		let matches = self.get_matching_blocks().iter().fold(0, |res, &m| res + m.size);
+		calculate_ratio(matches, self.first_sequence.len() + self.second_sequence.len())
 	}
 }
