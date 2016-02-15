@@ -28,25 +28,35 @@ impl PartialEq for Match {
 
 impl Eq for Match { }
 
+impl Match{
+	fn new(first_start: usize, second_start: usize, size: usize) -> Match {
+		Match{
+			first_start: first_start, 
+			second_start: second_start,
+			size: size
+		}
+	}
+}
+
 
 pub struct SequenceMatcher<'a>{
 	first_sequence: &'a str,
 	second_sequence: &'a str,
-	matching_blocks: Option<Vec<Match>>
+	matching_blocks: Option<Vec<Match>>,
+	opcodes: Option<Vec<(String, usize, usize, usize, usize)>>
 }
 
 impl<'a> SequenceMatcher<'a>{
-	pub fn new(first_sequence: &'a str, second_sequence: &'a str) -> SequenceMatcher<'a>
-	{
+	pub fn new(first_sequence: &'a str, second_sequence: &'a str) -> SequenceMatcher<'a> {
 		SequenceMatcher{
 			first_sequence: first_sequence,
 			second_sequence: second_sequence,
-			matching_blocks: None
+			matching_blocks: None,
+			opcodes: None
 		}
 	}
 
-	pub fn find_longest_match(&self, first_start: usize, first_end: usize, second_start: usize, second_end: usize) -> Option<Match>
-	{ 
+	pub fn find_longest_match(&self, first_start: usize, first_end: usize, second_start: usize, second_end: usize) -> Option<Match> { 
 		let first_sequence: Vec<char> = slice_str(self.first_sequence, first_start, first_end).unwrap_or("").chars().collect();
 		let second_sequence: Vec<char> = slice_str(self.second_sequence, second_start, second_end).unwrap_or("").chars().collect();
 		let mut max_i = 0;
@@ -76,8 +86,7 @@ impl<'a> SequenceMatcher<'a>{
 		}
 	}
 
-	pub fn get_matching_blocks(&mut self) -> Vec<Match>
-	{
+	pub fn get_matching_blocks(&mut self) -> Vec<Match> {
 		if self.matching_blocks.as_ref().is_some(){
             return self.matching_blocks.as_ref().unwrap().clone()
 		}
@@ -100,7 +109,7 @@ impl<'a> SequenceMatcher<'a>{
 			    None => {},
 			}
 		}
-		matches.sort_by(|a, b| a.cmp(b));
+		matches.sort_by(|a, b| b.cmp(a));
 		let (mut first_start, mut second_start, mut size) = (0, 0, 0);
 		let mut non_adjacent = Vec::new();
 		for m in &matches{
@@ -109,14 +118,48 @@ impl<'a> SequenceMatcher<'a>{
 			}
 			else {
 			    if size != 0{
-			    	non_adjacent.push(m.clone());
+			    	non_adjacent.push(Match::new(first_start, second_start, size));
 			    }
 			    first_start = m.first_start;
 			    second_start = m.second_start;
 			    size = m.size;
 			}
 		}	
+		if size != 0{
+			non_adjacent.push(Match::new(first_start, second_start, size));
+		}
+		non_adjacent.push(Match::new(first_length, second_length, 0));
 		self.matching_blocks = Some(non_adjacent);
 		self.matching_blocks.as_ref().unwrap().clone()
+	}
+
+	pub fn get_opcodes(&mut self) -> Vec<(String, usize, usize, usize, usize)>{
+		if self.opcodes.as_ref().is_some(){
+            return self.opcodes.as_ref().unwrap().clone()
+		}
+		let mut opcodes = Vec::new();
+		let (mut i, mut j) = (0, 0);
+		for m in self.get_matching_blocks(){
+			let mut tag = String::new();
+			if i < m.first_start && j < m.second_start{
+				tag = String::from("replace");
+			}
+			else if i < m.first_start{
+				tag = String::from("delete");
+			}
+			else if j < m.second_start{
+				tag = String::from("insert");
+			}
+			if !tag.is_empty(){
+				opcodes.push( (tag, i, m.first_start, j, m.second_start) );
+			}
+			i = m.first_start + m.size;
+			j = m.second_start + m.size;
+			if m.size != 0{
+				opcodes.push( (String::from("equal"), m.first_start, i, m.second_start, j) );
+			}
+		}
+		self.opcodes = Some(opcodes);
+		return self.opcodes.as_ref().unwrap().clone()
 	}
 }
