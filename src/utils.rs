@@ -18,3 +18,12 @@ pub fn calculate_ratio(matches: usize, length: usize) -> f32{
 	}
 	return 1.0
 }
+
+
+pub fn str_with_similar_chars(c: char, length: usize) -> String {
+    let mut s = String::new();
+    for _ in 0..length{
+        s.push_str(&c.to_string());
+    }
+    s
+}
