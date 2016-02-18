@@ -1,5 +1,6 @@
 use sequencematcher::SequenceMatcher;
-use utils::{slice_str, str_with_similar_chars};
+use utils::{slice_str, str_with_similar_chars, count_leading};
+use std::cmp;
 
 
 pub struct Differ {
@@ -20,7 +21,8 @@ impl Differ{
 		let mut res = Vec::new();
 		for opcode in matcher.get_opcodes(){
 			match opcode.tag.as_ref() {
-			    "replace" => {},
+			    "replace" => { res.push( self.fancy_replace(first_sequence, opcode.first_start, opcode.first_end, 
+			    	second_sequence, opcode.second_start, opcode.second_end) ) },
 			    "delete" => { res.push( self.dump("-", first_sequence, opcode.first_start, opcode.first_end) ) },
 			    "insert" => { res.push( self.dump("+", second_sequence, opcode.second_start, opcode.second_end) ) },
 			    "equal" => { res.push( self.dump(" ", first_sequence, opcode.first_start, opcode.first_end) ) },
@@ -44,7 +46,7 @@ impl Differ{
 	}
 
     fn plain_replace(&self, first_sequence: &str, first_start: usize, first_end: usize, 
-    	second_sequence: &str, second_start: usize, second_end: usize) -> Vec<Vec<String>> {
+    	second_sequence: &str, second_start: usize, second_end: usize) -> Vec<String> {
     	if !(first_start < first_end && second_start < second_end){
     		return Vec::new();
     	}
@@ -57,27 +59,25 @@ impl Differ{
     		first = self.dump("-", first_sequence, first_start, first_end);
     		second = self.dump("+", second_sequence, second_start, second_end);
     	}
-    	vec![first, second]
+    	for str in second{
+    		first.push(str);
+    	}
+    	first
     }
     
     fn fancy_replace(&self, first_sequence: &str, first_start: usize, first_end: usize,
-    	second_sequence: &str, second_start: usize, second_end: usize) -> Vec<Vec<String>> {
+    	second_sequence: &str, second_start: usize, second_end: usize) -> Vec<String> {
     	let mut res = Vec::new();
     	let first_sequence_vec: Vec<char> = first_sequence.chars().collect();
 		let second_sequence_vec: Vec<char> = second_sequence.chars().collect();
     	let (mut best_ratio, cutoff) = (0.74, 0.75);
     	let (mut best_i, mut best_j) = (0, 0);
     	let (mut second_sequence_char, mut first_sequence_char) = (String::new(), String::new());
-    	let mut cruncher = SequenceMatcher::new("", "");
     	//cruncher.charjunk = self.charjunk;
-    	// eqi, eqj = None, None   # 1st indices of equal lines (if any)
     	let mut eqi: Option<usize> = None;
     	let mut eqj: Option<usize> = None;
     	for j in second_start..second_end{
-    		cruncher.set_first_seq("");
-    		cruncher.set_second_seq("");
     		second_sequence_char = second_sequence_vec[j].to_string();
-    	    //cruncher.set_second_seq(&second_sequence_char);
     		for i in first_start..first_end{
     			first_sequence_char = first_sequence_vec[i].to_string();
     			if first_sequence_char == second_sequence_char{
@@ -87,7 +87,7 @@ impl Differ{
     				}
     				continue;
     			}
-    			//cruncher.set_first_seq(&first_sequence_char);
+    			let mut cruncher = SequenceMatcher::new(&first_sequence_char, &second_sequence_char);
     			if cruncher.ratio() > best_ratio{
     				best_ratio = cruncher.ratio();
     				best_i = i;
@@ -98,6 +98,7 @@ impl Differ{
         if best_ratio < cutoff{
         	if eqi.is_none(){
         		res.extend(self.plain_replace(first_sequence, first_start, first_end, second_sequence, second_start, second_end).iter().cloned());
+        	    return res
         	}
         	best_i = eqi.unwrap();
         	best_j = eqj.unwrap();
@@ -105,11 +106,11 @@ impl Differ{
         } else {
         	eqi = None;
         }
-        res.extend(vec![self.fancy_helper(first_sequence, first_start, best_i, second_sequence, second_start, best_j)].iter().cloned());
+        res.extend(self.fancy_helper(first_sequence, first_start, best_i, second_sequence, second_start, best_j).iter().cloned());
         let (first_elt, second_elt) = (first_sequence_vec[best_i].to_string(), second_sequence_vec[best_j].to_string());
         if eqi.is_none(){
         	let (mut first_tag, mut second_tag) = (String::new(), String::new());
-        	//cruncher.set_seqs(&first_elt, &second_elt);
+        	let mut cruncher = SequenceMatcher::new(&first_elt, &second_elt);
         	for opcode in &cruncher.get_opcodes(){
         		let (first_length, second_length) = (opcode.first_end - opcode.first_start, opcode.second_end - opcode.second_start);
         		match opcode.tag.as_ref() {
@@ -129,14 +130,14 @@ impl Differ{
         		    },
         		    _ => {}
         		}
-        		//res.extend(self.qformat)
+        		res.extend(self.qformat(&first_elt, &second_elt, &first_tag, &second_tag).iter().cloned());
         	}
         } else {
         	let mut s = String::from("  ");
         	s.push_str(&first_elt);
-        	res.extend(vec![vec![s]].iter().cloned());
+        	res.extend(vec![s].iter().cloned());
         }
-        res.extend(vec![self.fancy_helper(first_sequence, best_i + 1, first_end, second_sequence, best_j + 1, second_end)].iter().cloned());
+        res.extend(self.fancy_helper(first_sequence, best_i + 1, first_end, second_sequence, best_j + 1, second_end).iter().cloned());
         res
     }
 
@@ -153,5 +154,25 @@ impl Differ{
     		res = self.dump("+", second_sequence, second_start, second_end);
     	}
     	res
+    }
+
+    fn qformat(&self, first_line: &str, second_line: &str, first_tags: &str, second_tags: &str) -> Vec<String> {
+    	let mut res = Vec::new();
+    	let mut common = cmp::min(count_leading(first_line, '\t'), count_leading(second_line, '\t'));
+    	common = cmp::min(common, count_leading(first_tags.split_at(common).0, ' '));
+    	common = cmp::min(common, count_leading(first_tags.split_at(common).0, ' '));
+        let mut s = String::from(format!("- {}", first_line));
+        res.push(s);
+        if first_tags != ""{
+        	s = String::from(format!("? {}{}\n", str_with_similar_chars('\t', common), first_tags));
+        	res.push(s);
+        }
+        s = String::from(format!("+ {}", second_line));
+        res.push(s);
+        if second_tags != "" {
+        	s = String::from(format!("? {}{}\n", str_with_similar_chars('\t', common), second_tags));
+        	res.push(s);
+        }
+        res
     }
 }

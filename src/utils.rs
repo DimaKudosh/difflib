@@ -27,3 +27,13 @@ pub fn str_with_similar_chars(c: char, length: usize) -> String {
     }
     s
 }
+
+
+pub fn count_leading(line: &str, c: char) -> usize {
+    let (mut i, n) = (0, line.len());
+    let line: Vec<char> = line.chars().collect();
+    while (i < n) && line[i] == c {
+        i += 1;
+    }
+    return i
+} 
