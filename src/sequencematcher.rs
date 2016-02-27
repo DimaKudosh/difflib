@@ -1,11 +1,12 @@
+use std::collections::HashMap;
 use std::cmp::{Ordering, max, min};
-use utils::{slice_str, calculate_ratio};
+use utils::calculate_ratio;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Match{
-	first_start: usize,
-	second_start: usize,
-	size: usize
+	pub first_start: usize,
+	pub second_start: usize,
+	pub size: usize
 }
 
 impl Ord for Match {
@@ -59,75 +60,175 @@ impl Opcode{
 	}
 }
 
+pub trait Sequence {
+    fn len(&self) -> usize;
+    fn at_index(&self, index: usize) -> Option<&str>;
+    fn slice(&self, start: usize, end: usize) -> Option<&str>;
+}
 
-pub struct SequenceMatcher<'a>{
-	first_sequence: &'a str,
-	second_sequence: &'a str,
-	matching_blocks: Option<Vec<Match>>,
-	opcodes: Option<Vec<Opcode>>,
-	autojunk: bool
+impl Sequence for str {
+    fn len(&self) -> usize {
+    	self.len()
+    }
+
+    fn slice(&self, start: usize, end: usize) -> Option<&str> {
+    	if start >= end{
+	        return None
+        }
+        if start > self.len() || end > self.len(){
+    	    return None
+        }
+        unsafe{
+    	    Some(self.slice_unchecked(start, end))
+        }
+    }
+
+    fn at_index(&self, index: usize) -> Option<&str> {
+    	self.slice(index, index + 1)
+    }
+}
+
+impl<'a> Sequence for Vec<&'a str> {
+    fn len(&self) -> usize {
+    	self.len()
+    }
+
+    fn slice(&self, start: usize, end: usize) -> Option<&str> {
+    	None
+    }
+
+    fn at_index(&self, index: usize) -> Option<&str> {
+    	if index < self.len() && index >= 0 {
+    		return Some(self[index])
+    	}
+    	None
+    }
 }
 
 
-impl<'a> SequenceMatcher<'a>{
-	pub fn new(first_sequence: &'a str, second_sequence: &'a str) -> SequenceMatcher<'a> {
+pub struct SequenceMatcher<'a, T: 'a + ?Sized + Sequence>{
+	first_sequence: &'a T,
+	second_sequence: &'a T,
+	matching_blocks: Option<Vec<Match>>,
+	opcodes: Option<Vec<Opcode>>,
+	autojunk: bool,
+	second_sequence_elements: HashMap<&'a str, Vec<usize>>,
+	second_sequence_popular: Vec<&'a str>
+}
+
+
+impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T>{
+	pub fn new(first_sequence: &'a T, second_sequence: &'a T) -> SequenceMatcher<'a, T> {
+		let mut matcher = 
 		SequenceMatcher{
 			first_sequence: first_sequence,
 			second_sequence: second_sequence,
 			matching_blocks: None,
 			opcodes: None,
 			autojunk: true,
-
-		}
+			second_sequence_elements: HashMap::new(),
+			second_sequence_popular: Vec::new()
+		};
+		matcher.set_seqs(first_sequence, second_sequence);
+		matcher
 	}
 
-	pub fn set_seqs(&mut self, first_sequence: &'a str, second_sequence: &'a str) {
+	pub fn set_seqs(&mut self, first_sequence: &'a T, second_sequence: &'a T) {
 		self.set_first_seq(first_sequence);
 		self.set_second_seq(second_sequence);
 	}
 
-	pub fn set_first_seq(&mut self, sequence: &'a str) {
+	pub fn set_first_seq(&mut self, sequence: &'a T) {
 		self.first_sequence = sequence;
 		self.matching_blocks = None;
 		self.opcodes = None;
 	}
 
-	pub fn set_second_seq(&mut self, sequence: &'a str) {
+	pub fn set_second_seq(&mut self, sequence: &'a T) {
 		self.second_sequence = sequence;
 		self.matching_blocks = None;
 		self.opcodes = None;
-		//self.fullbcount = None
-        //self.__chain_b()
+        self.chain_second_seq();
 	}
+	
+    fn chain_second_seq(&mut self) {
+    	let second_sequence = self.second_sequence;
+    	let mut second_sequence_elements = HashMap::new();
+    	for i in 0..second_sequence.len() {
+    		let mut counter = second_sequence_elements.entry(second_sequence.at_index(i).unwrap()).or_insert(Vec::new());
+            counter.push(i);
+    	}
+    	let mut popular = Vec::new();
+    	let len = second_sequence.len();
+    	if len >= 200 {
+    		let test_len = (len as f32 / 100.0).floor() as usize + 1;
+    		for (element, indexes) in second_sequence_elements.iter() {
+    			if indexes.len() > test_len {
+    				popular.push(element.clone());
+    			}
+    		}
+    		for element in &popular {
+    			second_sequence_elements.remove(element);
+    		}
+    	}
+    	self.second_sequence_elements = second_sequence_elements;
+    	self.second_sequence_popular = popular;
+    }
 
-	pub fn find_longest_match(&self, first_start: usize, first_end: usize, second_start: usize, second_end: usize) -> Option<Match> { 
-		let first_sequence: Vec<char> = slice_str(self.first_sequence, first_start, first_end).unwrap_or("").chars().collect();
-		let second_sequence: Vec<char> = slice_str(self.second_sequence, second_start, second_end).unwrap_or("").chars().collect();
-		let mut max_i = 0;
-		let mut max_j = 0;
-		let mut arr: Vec<Vec<usize>> = vec![vec![0; second_sequence.len() + 1]; first_sequence.len() + 1];
-		for i in 0..first_sequence.len(){
-			for j in 0..second_sequence.len(){
-				if first_sequence[i] == second_sequence[j]{
-					arr[i + 1][j + 1] = arr[i][j] + 1;
-					if arr[i + 1][j + 1] > arr[max_i][max_j] {
-                        max_i = i + 1;
-                        max_j = j + 1;
-                   }
-				}
+	pub fn find_longest_match(&self, first_start: usize, first_end: usize, second_start: usize, second_end: usize) -> Match { 
+		let first_sequence = &self.first_sequence;
+		let second_sequence = &self.second_sequence;
+		let second_sequence_elements = &self.second_sequence_elements;
+		let (mut best_i, mut best_j, mut best_size) = (first_start, second_start, 0);
+		let mut j2len: HashMap<usize, usize> = HashMap::new();
+		for i in first_start..first_end {
+			let mut new_j2len: HashMap<usize, usize> = HashMap::new();
+			match second_sequence_elements.get(first_sequence.at_index(i).unwrap()) {
+			    Some(indexes) => {
+			    	for j in indexes {
+			    		let j = j.clone();
+			    		if j < second_start {
+			    			continue;
+			    		};
+			    		if j >= second_end {
+			    			break;
+			    		};
+			    		let mut size = 0;
+			    		if j > 0 {
+			    			match j2len.get(&(j-1)){
+			    				Some(k) => {
+			    					size = k.clone();
+			    				},
+			    				None => {}
+			    			}
+			    		}
+			    		size += 1;
+			    		new_j2len.insert(j, size);
+			    		println!("{:?} {}", i, size);
+			    		if size > best_size {
+			    			best_i = i + 1 - size;
+			    			best_j = j + 1 - size;
+			    			best_size = size;
+			    		}
+			    	}
+			    },
+			    None => {},
 			}
+			j2len = new_j2len;
 		}
-		if max_i == 0 && max_j == 0{
-			return None
-		}
-		else{
-			let size = arr[max_i][max_j];
-			Some(Match{
-				first_start: max_i - size + first_start,
-				second_start: max_j - size + second_start,
-				size: size
-			})
-		}
+		for _ in 0..2 {
+			while best_i > first_start && best_j > second_start && 
+			first_sequence.at_index(best_i - 1) == second_sequence.at_index(best_j-1){
+				best_i = best_i - 1;
+				best_j = best_j - 1;
+				best_size = best_size + 1;
+			}
+			while best_i + best_size < first_end && best_j + best_size < second_end &&
+			first_sequence.at_index(best_i + best_size) == second_sequence.at_index(best_j + best_size) {
+				best_size += 1;
+			}
+	    }
+	    Match::new(best_i, best_j, best_size)
 	}
 
 	pub fn get_matching_blocks(&mut self) -> Vec<Match> {
@@ -140,8 +241,9 @@ impl<'a> SequenceMatcher<'a>{
 		while !queue.is_empty(){
 			let (first_start, first_end, second_start, second_end) = queue.pop().unwrap();
 			let m = self.find_longest_match(first_start, first_end, second_start, second_end);
-			match m {
-			    Some(m) => {
+			match m.size {
+				0 => {},
+			    _ => {
 			    	if first_start < m.first_start && second_start < m.second_start{
 			    		queue.push((first_start, m.first_start, second_start, m.second_start));
 			    	}
@@ -150,9 +252,9 @@ impl<'a> SequenceMatcher<'a>{
 			    	}
 			    	matches.push(m);
 			    },
-			    None => {},
 			}
 		}
+		println!("{:?}", matches);
 		matches.sort_by(|a, b| b.cmp(a));
 		let (mut first_start, mut second_start, mut size) = (0, 0, 0);
 		let mut non_adjacent = Vec::new();
@@ -207,32 +309,6 @@ impl<'a> SequenceMatcher<'a>{
 		return self.opcodes.as_ref().unwrap().clone()
 	}
 
-	/*
-	codes = self.get_opcodes()
-        if not codes:
-            codes = [("equal", 0, 1, 0, 1)]
-        # Fixup leading and trailing groups if they show no changes.
-        if codes[0][0] == 'equal':
-            tag, i1, i2, j1, j2 = codes[0]
-            codes[0] = tag, max(i1, i2-n), i2, max(j1, j2-n), j2
-        if codes[-1][0] == 'equal':
-            tag, i1, i2, j1, j2 = codes[-1]
-            codes[-1] = tag, i1, min(i2, i1+n), j1, min(j2, j1+n)
-
-        nn = n + n
-        group = []
-        for tag, i1, i2, j1, j2 in codes:
-            # End the current group and start a new one whenever
-            # there is a large range with no changes.
-            if tag == 'equal' and i2-i1 > nn:
-                group.append((tag, i1, min(i2, i1+n), j1, min(j2, j1+n)))
-                yield group
-                group = []
-                i1, j1 = max(i1, i2-n), max(j1, j2-n)
-            group.append((tag, i1, i2, j1 ,j2))
-        if group and not (len(group)==1 and group[0][0] == 'equal'):
-            yield group
-           */
 	pub fn get_grouped_opcodes(&mut self, n: usize) -> Vec<Vec<Opcode>> {
 		let mut res = Vec::new();
 		let mut codes = self.get_opcodes();

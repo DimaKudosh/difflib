@@ -1,5 +1,5 @@
-use sequencematcher::SequenceMatcher;
-use utils::{slice_str, str_with_similar_chars, count_leading};
+use sequencematcher::{SequenceMatcher, Sequence};
+use utils::{str_with_similar_chars, count_leading};
 use std::cmp;
 
 
@@ -16,7 +16,7 @@ impl Differ{
 		}
 	}
 
-	pub fn compare(&self, first_sequence: &str, second_sequence: &str) -> Vec<Vec<String>> {
+	pub fn compare<T: ?Sized + Sequence>(&self, first_sequence: &T, second_sequence: &T) -> Vec<Vec<String>> {
 		let mut matcher = SequenceMatcher::new(first_sequence, second_sequence);
 		let mut res = Vec::new();
 		for opcode in matcher.get_opcodes(){
@@ -32,21 +32,19 @@ impl Differ{
 		res
 	}
 
-	fn dump(&self, tag: &str, string: &str, start: usize, end: usize) -> Vec<String> {
+	fn dump<T: ?Sized + Sequence>(&self, tag: &str, sequence: &T, start: usize, end: usize) -> Vec<String> {
 		let mut res = Vec::new();
-		match slice_str(string, start, end) {
-		    Some(s) => {
-		    	for c in s.chars(){
-		    		res.push(format!("{} {}", tag, c));
-		    	}
-		    },
-		    None => {},
-		}
+        for i in start..end {
+            match sequence.at_index(i) {
+                Some(s) => res.push(format!("{} {}", tag, s)),
+                None => {},
+            }
+        } 
 		res
 	}
 
-    fn plain_replace(&self, first_sequence: &str, first_start: usize, first_end: usize, 
-    	second_sequence: &str, second_start: usize, second_end: usize) -> Vec<String> {
+    fn plain_replace<T: ?Sized + Sequence>(&self, first_sequence: &T, first_start: usize, first_end: usize, 
+    	second_sequence: &T, second_start: usize, second_end: usize) -> Vec<String> {
     	if !(first_start < first_end && second_start < second_end){
     		return Vec::new();
     	}
@@ -64,30 +62,28 @@ impl Differ{
     	}
     	first
     }
-    
-    fn fancy_replace(&self, first_sequence: &str, first_start: usize, first_end: usize,
-    	second_sequence: &str, second_start: usize, second_end: usize) -> Vec<String> {
+
+    fn fancy_replace<T: ?Sized + Sequence>(&self, first_sequence: &T, first_start: usize, first_end: usize,
+    	second_sequence: &T, second_start: usize, second_end: usize) -> Vec<String> {
     	let mut res = Vec::new();
-    	let first_sequence_vec: Vec<char> = first_sequence.chars().collect();
-		let second_sequence_vec: Vec<char> = second_sequence.chars().collect();
     	let (mut best_ratio, cutoff) = (0.74, 0.75);
     	let (mut best_i, mut best_j) = (0, 0);
-    	let (mut second_sequence_char, mut first_sequence_char) = (String::new(), String::new());
+    	let (mut second_sequence_str, mut first_sequence_str) = ("", "");
     	//cruncher.charjunk = self.charjunk;
     	let mut eqi: Option<usize> = None;
     	let mut eqj: Option<usize> = None;
     	for j in second_start..second_end{
-    		second_sequence_char = second_sequence_vec[j].to_string();
+    		second_sequence_str = second_sequence.at_index(j).unwrap();  // Fix in feature
     		for i in first_start..first_end{
-    			first_sequence_char = first_sequence_vec[i].to_string();
-    			if first_sequence_char == second_sequence_char{
+    			first_sequence_str = first_sequence.at_index(i).unwrap();
+    			if first_sequence_str == second_sequence_str{ 
     				if eqi.is_none(){
     					eqi = Some(i);
     					eqj = Some(j);
     				}
     				continue;
     			}
-    			let mut cruncher = SequenceMatcher::new(&first_sequence_char, &second_sequence_char);
+    			let mut cruncher = SequenceMatcher::new(first_sequence_str, second_sequence_str);
     			if cruncher.ratio() > best_ratio{
     				best_ratio = cruncher.ratio();
     				best_i = i;
@@ -107,10 +103,10 @@ impl Differ{
         	eqi = None;
         }
         res.extend(self.fancy_helper(first_sequence, first_start, best_i, second_sequence, second_start, best_j).iter().cloned());
-        let (first_elt, second_elt) = (first_sequence_vec[best_i].to_string(), second_sequence_vec[best_j].to_string());
+        let (first_elt, second_elt) = (first_sequence_str.at_index(best_i).unwrap(), second_sequence_str.at_index(best_j).unwrap());
         if eqi.is_none(){
         	let (mut first_tag, mut second_tag) = (String::new(), String::new());
-        	let mut cruncher = SequenceMatcher::new(&first_elt, &second_elt);
+        	let mut cruncher = SequenceMatcher::new(first_elt, second_elt);
         	for opcode in &cruncher.get_opcodes(){
         		let (first_length, second_length) = (opcode.first_end - opcode.first_start, opcode.second_end - opcode.second_start);
         		match opcode.tag.as_ref() {
@@ -141,8 +137,8 @@ impl Differ{
         res
     }
 
-    fn fancy_helper(&self, first_sequence: &str, first_start: usize, first_end: usize,
-    	second_sequence: &str, second_start: usize, second_end: usize) -> Vec<String> {
+    fn fancy_helper<T: ?Sized + Sequence>(&self, first_sequence: &T, first_start: usize, first_end: usize,
+    	second_sequence: &T, second_start: usize, second_end: usize) -> Vec<String> {
     	let mut res = Vec::new();
     	if first_start < first_end{
     		if second_start < second_end{
@@ -175,4 +171,5 @@ impl Differ{
         }
         res
     }
+
 }
