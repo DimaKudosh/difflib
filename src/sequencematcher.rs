@@ -44,7 +44,6 @@ impl Opcode{
 pub trait Sequence: Debug {
     fn len(&self) -> usize;
     fn at_index(&self, index: usize) -> Option<&str>;
-    fn slice(&self, start: usize, end: usize) -> Option<&str>;
 }
 
 impl Sequence for str {
@@ -52,30 +51,19 @@ impl Sequence for str {
     	self.len()
     }
 
-    fn slice(&self, start: usize, end: usize) -> Option<&str> {
-    	if start >= end{
-	        return None
-        }
-        if start > self.len() || end > self.len(){
-    	    return None
-        }
-        unsafe{
-    	    Some(self.slice_unchecked(start, end))
-        }
-    }
-
     fn at_index(&self, index: usize) -> Option<&str> {
-    	self.slice(index, index + 1)
+    	if index > self.len(){
+    		return None
+    	}
+    	unsafe{
+    	    Some(self.slice_unchecked(index, index + 1))
+        }
     }
 }
 
 impl<'a> Sequence for Vec<&'a str> {
     fn len(&self) -> usize {
     	self.len()
-    }
-
-    fn slice(&self, start: usize, end: usize) -> Option<&str> {
-    	None
     }
 
     fn at_index(&self, index: usize) -> Option<&str> {
@@ -91,7 +79,7 @@ pub struct SequenceMatcher<'a, T: 'a + ?Sized + Sequence>{
 	second_sequence: &'a T,
 	matching_blocks: Option<Vec<Match>>,
 	opcodes: Option<Vec<Opcode>>,
-	autojunk: bool,
+	is_junk: Option<fn(&str) -> bool>,
 	second_sequence_elements: HashMap<&'a str, Vec<usize>>,
 	second_sequence_popular: Vec<&'a str>
 }
@@ -105,12 +93,17 @@ impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T>{
 			second_sequence: second_sequence,
 			matching_blocks: None,
 			opcodes: None,
-			autojunk: true,
+			is_junk: None,
 			second_sequence_elements: HashMap::new(),
 			second_sequence_popular: Vec::new()
 		};
 		matcher.set_seqs(first_sequence, second_sequence);
 		matcher
+	}
+
+	pub fn set_is_junk(&mut self, is_junk: Option<fn(&str) -> bool>) {
+		self.is_junk = is_junk;
+		self.set_second_seq(self.second_sequence);
 	}
 
 	pub fn set_seqs(&mut self, first_sequence: &'a T, second_sequence: &'a T) {
@@ -137,6 +130,17 @@ impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T>{
     	for i in 0..second_sequence.len() {
     		let mut counter = second_sequence_elements.entry(second_sequence.at_index(i).unwrap()).or_insert(Vec::new());
             counter.push(i);
+    	}
+    	if self.is_junk.is_some() {
+    		let mut junk = Vec::new();
+    		for element in second_sequence_elements.keys() {
+    			if (self.is_junk.unwrap())(element) {
+    				junk.push(element.clone());
+    			}
+    		}
+    		for element in &junk {
+    			second_sequence_elements.remove(element);
+    		}
     	}
     	let mut popular = Vec::new();
     	let len = second_sequence.len();

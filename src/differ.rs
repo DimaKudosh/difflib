@@ -4,20 +4,21 @@ use std::cmp;
 
 
 pub struct Differ {
-    linejunk: Option<String>,
-    charjunk: Option<String>
+    pub line_junk: Option<fn(&str) -> bool>,
+    pub char_junk: Option<fn(&str) -> bool>
 }
 
 impl Differ{
 	pub fn new() -> Differ {
 		Differ{
-			linejunk: None,
-			charjunk: None
+			line_junk: None,
+			char_junk: None
 		}
 	}
 
 	pub fn compare<T: ?Sized + Sequence>(&self, first_sequence: &T, second_sequence: &T) -> Vec<String> {
 		let mut matcher = SequenceMatcher::new(first_sequence, second_sequence);
+        matcher.set_is_junk(self.line_junk);
 		let mut res = Vec::new();
 		for opcode in matcher.get_opcodes(){
             let mut gen = Vec::new();
@@ -87,7 +88,7 @@ impl Differ{
     				continue;
     			}
     			let mut cruncher = SequenceMatcher::new(first_sequence_str, second_sequence_str);
-                //cruncher.charjunk = self.charjunk;
+                cruncher.set_is_junk(self.char_junk);
     			if cruncher.ratio() > best_ratio{
     				best_ratio = cruncher.ratio();
     				best_i = i;
@@ -97,7 +98,7 @@ impl Differ{
         }
         if best_ratio < cutoff{
         	if eqi.is_none(){
-        		//res.extend(self.plain_replace(first_sequence, first_start, first_end, second_sequence, second_start, second_end).iter().cloned());
+        		res.extend(self.plain_replace(first_sequence, first_start, first_end, second_sequence, second_start, second_end).iter().cloned());
                 return res
         	}
         	best_i = eqi.unwrap();
@@ -111,7 +112,7 @@ impl Differ{
         if eqi.is_none(){
         	let (mut first_tag, mut second_tag) = (String::new(), String::new());
         	let mut cruncher = SequenceMatcher::new(first_element, second_element);
-            //cruncher.charjunk = self.charjunk;
+            cruncher.set_is_junk(self.char_junk);
         	for opcode in &cruncher.get_opcodes(){
         		let (first_length, second_length) = (opcode.first_end - opcode.first_start, opcode.second_end - opcode.second_start);
         		match opcode.tag.as_ref() {

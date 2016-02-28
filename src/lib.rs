@@ -10,7 +10,7 @@ use utils::{format_range_unified, format_range_context};
 
 pub fn get_close_matches<'a>(word: &str, possibilities: Vec<&'a str>, n: usize, cutoff: f32) -> Vec<&'a str> {
 	if !(0.0 <= cutoff && cutoff <= 1.0) {
-		//error
+		panic!("Cutoff must be greater than 0.0 and lower than 1.0");
 	}
 	let mut res: Vec<(f32, &str)> = Vec::new();
 	let mut matcher = SequenceMatcher::new("", word);

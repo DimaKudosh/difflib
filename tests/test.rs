@@ -102,9 +102,26 @@ fn test_differ_compare() {
     assert_eq!(result, "- one\n?  ^\n+ ore\n?  ^\n- two\n- three\n?  -\n+ tree\n+ emu\n");
 }
 
+fn is_junk_char(ch: &str) -> bool {
+    if ch == " " || ch == "\t" {
+        return true
+    }
+    false
+}
+
+#[test]
+fn test_differ_compare_with_func() {
+    let first_text = vec!["one\n", "two\n", "three\n"];
+    let second_text = vec!["ore\n", "tree\n", "emu\n"];
+    let mut differ = Differ::new();
+    differ.char_junk = Some(is_junk_char);
+    let result = differ.compare(&first_text, &second_text).join("");
+    assert_eq!(result, "- one\n?  ^\n+ ore\n?  ^\n- two\n- three\n?  -\n+ tree\n+ emu\n");
+}
+
 #[test]
 fn test_differ_restore() {
-    let first_text = vec!["one\n", "two\n", "three\n"];
+    let first_text = vec!["one\n", "  two\n", "three\n"];
     let second_text = vec!["ore\n", "tree\n", "emu\n"];
     let differ = Differ::new();
     let diff = differ.compare(&first_text, &second_text);
