@@ -101,3 +101,13 @@ fn test_differ_compare() {
     let result = differ.compare(&first_text, &second_text).join("");
     assert_eq!(result, "- one\n?  ^\n+ ore\n?  ^\n- two\n- three\n?  -\n+ tree\n+ emu\n");
 }
+
+#[test]
+fn test_unified_diff() {
+    let first_text = "one two three four".split(" ").collect::<Vec<&str>>();
+    let second_text = "zero one tree four".split(" ").collect::<Vec<&str>>();
+    let result = difflib::unified_diff(&first_text, &second_text, "Original", "Current",
+             "2005-01-26 23:30:50", "2010-04-02 10:20:52", 3, "").join("");
+    assert_eq!(result, "--- Original\t2005-01-26 23:30:50+++ Current\t2010-04-02 10:20:52@@ -1,4 +1,4 @@+zero one-two-three+tree four");
+
+}

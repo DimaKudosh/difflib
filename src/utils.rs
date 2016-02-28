@@ -27,6 +27,7 @@ pub fn count_leading(line: &str, c: char) -> usize {
 
 pub fn format_range_unified(start:usize, end: usize) -> String {
     let mut beginning = start + 1;
+    println!("{:?} {}", start, end);
     let length = end - start;
     if length == 1 {
         return format!("{}", beginning)

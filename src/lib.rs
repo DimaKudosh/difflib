@@ -3,7 +3,7 @@ pub mod differ;
 mod utils;
 
 
-use sequencematcher::SequenceMatcher;
+use sequencematcher::{SequenceMatcher, Sequence};
 use utils::{format_range_unified};
 
 
@@ -24,9 +24,9 @@ pub fn get_close_matches<'a>(word: &str, possibilities: Vec<&'a str>, n: usize, 
 	res.truncate(n);
 	res.iter().map(|x| x.1).collect()
 }
-/*
-pub fn unified_diff(first_sequence: &str, second_sequence: &str, from_file: &str, to_file: &str, 
-	from_file_date: &str, to_file_date: &str, n: usize, lineterm: char) -> Vec<String> {
+
+pub fn unified_diff<T: Sequence>(first_sequence: &T, second_sequence: &T, from_file: &str, to_file: &str, 
+	from_file_date: &str, to_file_date: &str, n: usize, lineterm: &str) -> Vec<String> {
 	let mut res = Vec::new();
 	let mut started = false;
 	let mut matcher = SequenceMatcher::new(first_sequence, second_sequence);
@@ -39,28 +39,27 @@ pub fn unified_diff(first_sequence: &str, second_sequence: &str, from_file: &str
 			res.push( format!("+++ {}{}{}", to_file, to_date, lineterm) );
 		}
 		let (first, last) = (group.first().unwrap(), group.last().unwrap());
-		let file1_range = format_range_unified(first.first_start, first.first_end); 
-		let file2_range = format_range_unified(last.second_start, last.second_end);
+		let file1_range = format_range_unified(first.first_start, last.first_end); 
+		let file2_range = format_range_unified(first.second_start, last.second_end);
 		res.push( format!("@@ -{} +{} @@{}", file1_range, file2_range, lineterm) );
 		for code in group {
 			if code.tag == "equal" {
-				for line in slice_str(first_sequence, code.first_start, code.first_end).unwrap().split_whitespace() {
-					res.push( format!(" {}", line) );
+				for i in code.first_start..code.first_end {
+					res.push( format!(" {}", first_sequence.at_index(i).unwrap()) );
 				}
 				continue;
 			}
 			if code.tag == "replace" || code.tag == "delete" {
-				for line in slice_str(first_sequence, code.first_start, code.first_end).unwrap().split_whitespace() {
-					res.push( format!("-{}", line) );
+				for i in code.first_start..code.first_end {
+					res.push( format!("-{}", first_sequence.at_index(i).unwrap()) );
 				}
 			}
 			if code.tag == "replace" || code.tag == "insert" {
-				for line in slice_str(second_sequence, code.second_start, code.second_end).unwrap().split_whitespace() {
-					res.push( format!("+{}", line) );
+				for i in code.second_start..code.second_end {
+					res.push( format!("+{}", second_sequence.at_index(i).unwrap()) );
 				}
 			}
 		}
 	}
 	res
 }
-*/

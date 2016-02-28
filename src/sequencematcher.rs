@@ -86,7 +86,6 @@ impl<'a> Sequence for Vec<&'a str> {
     }
 }
 
-
 pub struct SequenceMatcher<'a, T: 'a + ?Sized + Sequence>{
 	first_sequence: &'a T,
 	second_sequence: &'a T,
@@ -257,26 +256,7 @@ impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T>{
 		self.matching_blocks = Some(non_adjacent);
 		self.matching_blocks.as_ref().unwrap().clone()
 	}
-/*
-if self.opcodes is not None:
-            return self.opcodes
-        i = j = 0
-        self.opcodes = answer = []
-        for ai, bj, size in self.get_matching_blocks():
-            tag = ''
-            if i < ai and j < bj:
-                tag = 'replace'
-            elif i < ai:
-                tag = 'delete'
-            elif j < bj:
-                tag = 'insert'
-            if tag:
-                answer.append( (tag, i, ai, j, bj) )
-            i, j = ai+size, bj+size
-            if size:
-                answer.append( ('equal', ai, i, bj, j) )
-        return answer
-*/
+
 	pub fn get_opcodes(&mut self) -> Vec<Opcode>{
 		if self.opcodes.as_ref().is_some(){
             return self.opcodes.as_ref().unwrap().clone()
