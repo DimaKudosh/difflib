@@ -30,10 +30,23 @@ pub fn format_range_unified(start:usize, end: usize) -> String {
     println!("{:?} {}", start, end);
     let length = end - start;
     if length == 1 {
-        return format!("{}", beginning)
+        return beginning.to_string()
     }
     if length == 0 {
         beginning -= 1;
     }
     format!("{},{}", beginning, length)
+}
+
+
+pub fn format_range_context(start: usize, end: usize) -> String {
+    let mut beginning = start + 1;
+    let length = end - start;
+    if length == 0 {
+        beginning -= 1
+    }
+    if length <= 1 {
+        return beginning.to_string()
+    }
+    format!("{},{}", beginning, beginning + length - 1)
 }
