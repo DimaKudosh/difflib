@@ -1,33 +1,14 @@
 use std::collections::HashMap;
 use std::cmp::{Ordering, max, min};
 use utils::calculate_ratio;
+use std::fmt::Debug;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
 pub struct Match{
 	pub first_start: usize,
 	pub second_start: usize,
 	pub size: usize
 }
-
-impl Ord for Match {
-    fn cmp(&self, other: &Match) -> Ordering {
-        self.size.cmp(&other.size)
-    }
-}
-
-impl PartialOrd for Match {
-    fn partial_cmp(&self, other: &Match) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl PartialEq for Match {
-    fn eq(&self, other: &Match) -> bool {
-        self.size == other.size
-    }
-}
-
-impl Eq for Match { }
 
 impl Match{
 	fn new(first_start: usize, second_start: usize, size: usize) -> Match {
@@ -39,7 +20,7 @@ impl Match{
 	}
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Opcode{
 	pub tag: String,
 	pub first_start: usize,
@@ -60,7 +41,7 @@ impl Opcode{
 	}
 }
 
-pub trait Sequence {
+pub trait Sequence: Debug {
     fn len(&self) -> usize;
     fn at_index(&self, index: usize) -> Option<&str>;
     fn slice(&self, start: usize, end: usize) -> Option<&str>;
@@ -204,7 +185,6 @@ impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T>{
 			    		}
 			    		size += 1;
 			    		new_j2len.insert(j, size);
-			    		println!("{:?} {}", i, size);
 			    		if size > best_size {
 			    			best_i = i + 1 - size;
 			    			best_j = j + 1 - size;
@@ -254,8 +234,7 @@ impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T>{
 			    },
 			}
 		}
-		println!("{:?}", matches);
-		matches.sort_by(|a, b| b.cmp(a));
+		matches.sort_by(|a, b| a.cmp(b));
 		let (mut first_start, mut second_start, mut size) = (0, 0, 0);
 		let mut non_adjacent = Vec::new();
 		for m in &matches{
@@ -278,7 +257,26 @@ impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T>{
 		self.matching_blocks = Some(non_adjacent);
 		self.matching_blocks.as_ref().unwrap().clone()
 	}
-
+/*
+if self.opcodes is not None:
+            return self.opcodes
+        i = j = 0
+        self.opcodes = answer = []
+        for ai, bj, size in self.get_matching_blocks():
+            tag = ''
+            if i < ai and j < bj:
+                tag = 'replace'
+            elif i < ai:
+                tag = 'delete'
+            elif j < bj:
+                tag = 'insert'
+            if tag:
+                answer.append( (tag, i, ai, j, bj) )
+            i, j = ai+size, bj+size
+            if size:
+                answer.append( ('equal', ai, i, bj, j) )
+        return answer
+*/
 	pub fn get_opcodes(&mut self) -> Vec<Opcode>{
 		if self.opcodes.as_ref().is_some(){
             return self.opcodes.as_ref().unwrap().clone()
@@ -315,6 +313,7 @@ impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T>{
 		if codes.is_empty() {
 			codes.push(Opcode::new("equal".to_string(), 0, 1, 0, 1));
 		}
+
 		if codes.first().unwrap().tag == "equal" {
 			let mut opcode = codes.first_mut().unwrap();
 			opcode.first_start = max(opcode.first_start, opcode.first_end - n);
