@@ -77,7 +77,7 @@ impl Differ{
     	let mut eqi: Option<usize> = None;
     	let mut eqj: Option<usize> = None;
     	for j in second_start..second_end{
-    		second_sequence_str = second_sequence.at_index(j).unwrap();  // Fix in feature
+    		second_sequence_str = second_sequence.at_index(j).unwrap();  
     		for i in first_start..first_end{
     			first_sequence_str = first_sequence.at_index(i).unwrap();
     			if first_sequence_str == second_sequence_str{ 
