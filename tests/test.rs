@@ -103,6 +103,16 @@ fn test_differ_compare() {
 }
 
 #[test]
+fn test_differ_restore() {
+    let first_text = vec!["one\n", "two\n", "three\n"];
+    let second_text = vec!["ore\n", "tree\n", "emu\n"];
+    let differ = Differ::new();
+    let diff = differ.compare(&first_text, &second_text);
+    assert_eq!(first_text, Differ::restore(&diff, 1));
+    assert_eq!(second_text, Differ::restore(&diff, 2));
+}
+
+#[test]
 fn test_unified_diff() {
     let first_text = "one two three four".split(" ").collect::<Vec<&str>>();
     let second_text = "zero one tree four".split(" ").collect::<Vec<&str>>();

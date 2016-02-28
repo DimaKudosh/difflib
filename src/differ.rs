@@ -181,6 +181,28 @@ impl Differ{
         res
     }
 
+    pub fn restore(delta: &Vec<String>, which: usize) -> Vec<String> {
+        if !(which == 1 || which == 2) {
+            panic!("Second parameter must be 1 or 2");
+        }
+        let mut res = Vec::new();
+        let mut tag = String::new();
+        if which == 1 {
+            tag = "- ".to_string();
+        } else {
+            tag = "+ ".to_string();
+        }
+        let prefixes = vec![tag, "  ".to_string()];
+        for line in delta {
+            for prefix in &prefixes {
+                if line.starts_with(prefix) {
+                    res.push( line.split_at(2).1.to_string() );
+                }
+            }
+        }
+        res
+    }
+
 }
 
 #[test]
