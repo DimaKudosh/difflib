@@ -42,49 +42,49 @@ impl Opcode{
 }
 
 pub trait Sequence: Debug {
-    fn len(&self) -> usize;
-    fn at_index(&self, index: usize) -> Option<&str>;
+	fn len(&self) -> usize;
+	fn at_index(&self, index: usize) -> Option<&str>;
 }
 
 impl Sequence for str {
-    fn len(&self) -> usize {
-    	self.len()
-    }
+	fn len(&self) -> usize {
+		self.len()
+	}
 
-    fn at_index(&self, index: usize) -> Option<&str> {
-    	if index > self.len(){
-    		return None
-    	}
-    	unsafe{
-    	    Some(self.slice_unchecked(index, index + 1))
-        }
-    }
+	fn at_index(&self, index: usize) -> Option<&str> {
+		if index > self.len(){
+			return None
+		}
+		unsafe{
+			Some(self.slice_unchecked(index, index + 1))
+		}
+	}
 }
 
 impl<'a> Sequence for Vec<&'a str> {
-    fn len(&self) -> usize {
-    	self.len()
-    }
+	fn len(&self) -> usize {
+		self.len()
+	}
 
-    fn at_index(&self, index: usize) -> Option<&str> {
-    	if index < self.len() && index >= 0 {
-    		return Some(self[index])
-    	}
-    	None
-    }
+	fn at_index(&self, index: usize) -> Option<&str> {
+		if index < self.len() && index >= 0 {
+			return Some(self[index])
+		}
+		None
+	}
 }
 
 impl<'a> Sequence for [&'a str] {
 	fn len(&self) -> usize {
-    	self.len()
-    }
+		self.len()
+	}
 
-    fn at_index(&self, index: usize) -> Option<&str> {
-    	if index < self.len() && index >= 0 {
-    		return Some(self[index])
-    	}
-    	None
-    }
+	fn at_index(&self, index: usize) -> Option<&str> {
+		if index < self.len() && index >= 0 {
+			return Some(self[index])
+		}
+		None
+	}
 }
 
 pub struct SequenceMatcher<'a, T: 'a + ?Sized + Sequence>{
@@ -134,43 +134,43 @@ impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T>{
 		self.second_sequence = sequence;
 		self.matching_blocks = None;
 		self.opcodes = None;
-        self.chain_second_seq();
+		self.chain_second_seq();
 	}
 	
-    fn chain_second_seq(&mut self) {
-    	let second_sequence = self.second_sequence;
-    	let mut second_sequence_elements = HashMap::new();
-    	for i in 0..second_sequence.len() {
-    		let mut counter = second_sequence_elements.entry(second_sequence.at_index(i).unwrap()).or_insert(Vec::new());
-            counter.push(i);
-    	}
-    	if self.is_junk.is_some() {
-    		let mut junk = Vec::new();
-    		for element in second_sequence_elements.keys() {
-    			if (self.is_junk.unwrap())(element) {
-    				junk.push(element.clone());
-    			}
-    		}
-    		for element in &junk {
-    			second_sequence_elements.remove(element);
-    		}
-    	}
-    	let mut popular = Vec::new();
-    	let len = second_sequence.len();
-    	if len >= 200 {
-    		let test_len = (len as f32 / 100.0).floor() as usize + 1;
-    		for (element, indexes) in second_sequence_elements.iter() {
-    			if indexes.len() > test_len {
-    				popular.push(element.clone());
-    			}
-    		}
-    		for element in &popular {
-    			second_sequence_elements.remove(element);
-    		}
-    	}
-    	self.second_sequence_elements = second_sequence_elements;
-    	self.second_sequence_popular = popular;
-    }
+	fn chain_second_seq(&mut self) {
+		let second_sequence = self.second_sequence;
+		let mut second_sequence_elements = HashMap::new();
+		for i in 0..second_sequence.len() {
+			let mut counter = second_sequence_elements.entry(second_sequence.at_index(i).unwrap()).or_insert(Vec::new());
+			counter.push(i);
+		}
+		if self.is_junk.is_some() {
+			let mut junk = Vec::new();
+			for element in second_sequence_elements.keys() {
+				if (self.is_junk.unwrap())(element) {
+					junk.push(element.clone());
+				}
+			}
+			for element in &junk {
+				second_sequence_elements.remove(element);
+			}
+		}
+		let mut popular = Vec::new();
+		let len = second_sequence.len();
+		if len >= 200 {
+			let test_len = (len as f32 / 100.0).floor() as usize + 1;
+			for (element, indexes) in second_sequence_elements.iter() {
+				if indexes.len() > test_len {
+					popular.push(element.clone());
+				}
+			}
+			for element in &popular {
+				second_sequence_elements.remove(element);
+			}
+		}
+		self.second_sequence_elements = second_sequence_elements;
+		self.second_sequence_popular = popular;
+	}
 
 	pub fn find_longest_match(&self, first_start: usize, first_end: usize, second_start: usize, second_end: usize) -> Match { 
 		let first_sequence = &self.first_sequence;
@@ -181,34 +181,34 @@ impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T>{
 		for i in first_start..first_end {
 			let mut new_j2len: HashMap<usize, usize> = HashMap::new();
 			match second_sequence_elements.get(first_sequence.at_index(i).unwrap()) {
-			    Some(indexes) => {
-			    	for j in indexes {
-			    		let j = j.clone();
-			    		if j < second_start {
-			    			continue;
-			    		};
-			    		if j >= second_end {
-			    			break;
-			    		};
-			    		let mut size = 0;
-			    		if j > 0 {
-			    			match j2len.get(&(j-1)){
-			    				Some(k) => {
-			    					size = k.clone();
-			    				},
-			    				None => {}
-			    			}
-			    		}
-			    		size += 1;
-			    		new_j2len.insert(j, size);
-			    		if size > best_size {
-			    			best_i = i + 1 - size;
-			    			best_j = j + 1 - size;
-			    			best_size = size;
-			    		}
-			    	}
-			    },
-			    None => {},
+				Some(indexes) => {
+					for j in indexes {
+						let j = j.clone();
+						if j < second_start {
+							continue;
+						};
+						if j >= second_end {
+							break;
+						};
+						let mut size = 0;
+						if j > 0 {
+							match j2len.get(&(j-1)){
+								Some(k) => {
+									size = k.clone();
+								},
+								None => {}
+							}
+						}
+						size += 1;
+						new_j2len.insert(j, size);
+						if size > best_size {
+							best_i = i + 1 - size;
+							best_j = j + 1 - size;
+							best_size = size;
+						}
+					}
+				},
+				None => {},
 			}
 			j2len = new_j2len;
 		}
@@ -223,13 +223,13 @@ impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T>{
 			first_sequence.at_index(best_i + best_size) == second_sequence.at_index(best_j + best_size) {
 				best_size += 1;
 			}
-	    }
-	    Match::new(best_i, best_j, best_size)
+		}
+		Match::new(best_i, best_j, best_size)
 	}
 
 	pub fn get_matching_blocks(&mut self) -> Vec<Match> {
 		if self.matching_blocks.as_ref().is_some(){
-            return self.matching_blocks.as_ref().unwrap().clone()
+			return self.matching_blocks.as_ref().unwrap().clone()
 		}
 		let (first_length, second_length) = (self.first_sequence.len(), self.second_sequence.len());
 		let mut matches = Vec::new();
@@ -239,15 +239,15 @@ impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T>{
 			let m = self.find_longest_match(first_start, first_end, second_start, second_end);
 			match m.size {
 				0 => {},
-			    _ => {
-			    	if first_start < m.first_start && second_start < m.second_start{
-			    		queue.push((first_start, m.first_start, second_start, m.second_start));
-			    	}
-			    	if m.first_start + m.size < first_end && m.second_start + m.size < second_end{
-			    		queue.push((m.first_start + m.size, first_end, m.second_start + m.size, second_end));
-			    	}
-			    	matches.push(m);
-			    },
+				_ => {
+					if first_start < m.first_start && second_start < m.second_start{
+						queue.push((first_start, m.first_start, second_start, m.second_start));
+					}
+					if m.first_start + m.size < first_end && m.second_start + m.size < second_end{
+						queue.push((m.first_start + m.size, first_end, m.second_start + m.size, second_end));
+					}
+					matches.push(m);
+				},
 			}
 		}
 		matches.sort_by(|a, b| a.cmp(b));
@@ -258,12 +258,12 @@ impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T>{
 				size += m.size
 			}
 			else {
-			    if size != 0{
-			    	non_adjacent.push(Match::new(first_start, second_start, size));
-			    }
-			    first_start = m.first_start;
-			    second_start = m.second_start;
-			    size = m.size;
+				if size != 0{
+					non_adjacent.push(Match::new(first_start, second_start, size));
+				}
+				first_start = m.first_start;
+				second_start = m.second_start;
+				size = m.size;
 			}
 		}	
 		if size != 0{
@@ -276,7 +276,7 @@ impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T>{
 
 	pub fn get_opcodes(&mut self) -> Vec<Opcode>{
 		if self.opcodes.as_ref().is_some(){
-            return self.opcodes.as_ref().unwrap().clone()
+			return self.opcodes.as_ref().unwrap().clone()
 		}
 		let mut opcodes = Vec::new();
 		let (mut i, mut j) = (0, 0);
