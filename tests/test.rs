@@ -134,8 +134,8 @@ fn test_unified_diff() {
 	let first_text = "one two three four".split(" ").collect::<Vec<&str>>();
 	let second_text = "zero one tree four".split(" ").collect::<Vec<&str>>();
 	let result = difflib::unified_diff(&first_text, &second_text, "Original", "Current",
-			"2005-01-26 23:30:50", "2010-04-02 10:20:52", 3, "").join("");
-	assert_eq!(result, "--- Original\t2005-01-26 23:30:50+++ Current\t2010-04-02 10:20:52@@ -1,4 +1,4 @@+zero one-two-three+tree four");
+			"2005-01-26 23:30:50", "2010-04-02 10:20:52", 3).join("");
+	assert_eq!(result, "--- Original\t2005-01-26 23:30:50\n+++ Current\t2010-04-02 10:20:52\n@@ -1,4 +1,4 @@\n+zero one-two-three+tree four");
 }
 
 #[test]
@@ -143,6 +143,6 @@ fn test_context_diff() {
 	let first_text = "one two three four".split(" ").collect::<Vec<&str>>();
 	let second_text = "zero one tree four".split(" ").collect::<Vec<&str>>();
 	let result = difflib::context_diff(&first_text, &second_text, "Original", "Current",
-			"2005-01-26 23:30:50", "2010-04-02 10:20:52", 3, "").join("");
-	assert_eq!(result, "*** Original\t2005-01-26 23:30:50--- Current\t2010-04-02 10:20:52****************** 1,4 ****  one! two! three  four--- 1,4 ----+ zero  one! tree  four");
+			"2005-01-26 23:30:50", "2010-04-02 10:20:52", 3).join("");
+	assert_eq!(result, "*** Original\t2005-01-26 23:30:50\n--- Current\t2010-04-02 10:20:52\n***************\n*** 1,4 ****\n  one! two! three  four--- 1,4 ----\n+ zero  one! tree  four");
 }

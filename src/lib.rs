@@ -27,8 +27,9 @@ pub fn get_close_matches<'a>(word: &str, possibilities: Vec<&'a str>, n: usize, 
 }
 
 pub fn unified_diff<T: Sequence>(first_sequence: &T, second_sequence: &T, from_file: &str, to_file: &str, 
-	from_file_date: &str, to_file_date: &str, n: usize, lineterm: &str) -> Vec<String> {
+	from_file_date: &str, to_file_date: &str, n: usize) -> Vec<String> {
 	let mut res = Vec::new();
+	let lineterm = '\n';
 	let mut started = false;
 	let mut matcher = SequenceMatcher::new(first_sequence, second_sequence);
 	for group in &matcher.get_grouped_opcodes(n) {
@@ -67,8 +68,9 @@ pub fn unified_diff<T: Sequence>(first_sequence: &T, second_sequence: &T, from_f
 
 
 pub fn context_diff<T: Sequence>(first_sequence: &T, second_sequence: &T, from_file: &str, to_file: &str, 
-	from_file_date: &str, to_file_date: &str, n: usize, lineterm: &str) -> Vec<String> {
+	from_file_date: &str, to_file_date: &str, n: usize) -> Vec<String> {
 	let mut res = Vec::new();
+	let lineterm = '\n';
 	let mut prefix: HashMap<String, String> = HashMap::new();
 	prefix.insert(String::from("insert"), String::from("+ "));
 	prefix.insert(String::from("delete"), String::from("- "));
