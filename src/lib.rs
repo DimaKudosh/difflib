@@ -107,7 +107,7 @@ pub fn context_diff<T: Sequence>(first_sequence: &T, second_sequence: &T, from_f
 			}
 		}
 		let file2_range = format_range_context(first.second_start, last.second_end);
-		res.push(format!("--- {} ----{}", file1_range, lineterm));
+		res.push(format!("--- {} ----{}", file2_range, lineterm));
 		any = false;
 		for opcode in group {
 			if opcode.tag == "replace" || opcode.tag == "insert" {

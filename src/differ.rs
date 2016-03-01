@@ -53,8 +53,8 @@ impl Differ{
 		if !(first_start < first_end && second_start < second_end){
 			return Vec::new();
 		}
-		let mut first = Vec::new();
-		let mut second = Vec::new();
+		let mut first;
+		let second;
 		if second_end - second_start < first_end - first_start{
 			first = self.dump("+", second_sequence, second_start, second_end);
 			second = self.dump("-", first_sequence, first_start, first_end);
@@ -73,7 +73,7 @@ impl Differ{
 		let mut res = Vec::new();
 		let (mut best_ratio, cutoff) = (0.74, 0.75);
 		let (mut best_i, mut best_j) = (0, 0);
-		let (mut second_sequence_str, mut first_sequence_str) = ("", "");
+		let (mut second_sequence_str, mut first_sequence_str);
 		let mut eqi: Option<usize> = None;
 		let mut eqj: Option<usize> = None;
 		for j in second_start..second_end{
@@ -103,7 +103,6 @@ impl Differ{
 			}
 			best_i = eqi.unwrap();
 			best_j = eqj.unwrap();
-			best_ratio = 1.0;
 		} else {
 			eqi = None;
 		}
@@ -187,7 +186,7 @@ impl Differ{
 			panic!("Second parameter must be 1 or 2");
 		}
 		let mut res = Vec::new();
-		let mut tag = String::new();
+		let tag;
 		if which == 1 {
 			tag = "- ".to_string();
 		} else {

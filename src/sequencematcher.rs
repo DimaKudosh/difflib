@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::cmp::{Ordering, max, min};
+use std::cmp::{max, min};
 use utils::calculate_ratio;
 use std::fmt::Debug;
 
@@ -67,7 +67,7 @@ impl<'a> Sequence for Vec<&'a str> {
 	}
 
 	fn at_index(&self, index: usize) -> Option<&str> {
-		if index < self.len() && index >= 0 {
+		if index < self.len() {
 			return Some(self[index])
 		}
 		None
