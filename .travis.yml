@@ -22,6 +22,7 @@ script:
 after_success:
   - travis-cargo --only stable doc-upload
   - travis-cargo coveralls --no-sudo --verify
+  - ./kcov/build/src/kcov --verify --coveralls-id=$TRAVIS_JOB_ID --exclude-pattern=/.cargo target/kcov target/debug/iomrascalai-*
 
 
 env:
