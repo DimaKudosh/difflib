@@ -1,3 +1,4 @@
+sudo: false
 language: rust
 addons:
   apt:
@@ -26,3 +27,7 @@ after_success:
 env:
   global:
     - TRAVIS_CARGO_NIGHTLY_FEATURE=nightly
+
+matrix:
+  allow_failures:
+    - rust: nightly
