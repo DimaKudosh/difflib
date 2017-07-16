@@ -337,8 +337,8 @@ Opcode::new(String::from("equal"), m.first_start, i, m.second_start, j)
 
         if codes.first().unwrap().tag == "equal" {
             let mut opcode = codes.first_mut().unwrap();
-            opcode.first_start = max(opcode.first_start, opcode.first_end - n);
-            opcode.second_start = max(opcode.second_start, opcode.second_end - n);
+            opcode.first_start = max(opcode.first_start, opcode.first_end.saturating_sub(n));
+            opcode.second_start = max(opcode.second_start, opcode.second_end.saturating_sub(n));
         }
         if codes.last().unwrap().tag == "equal" {
             let mut opcode = codes.last_mut().unwrap();
@@ -357,8 +357,8 @@ Opcode::new(String::from("equal"), m.first_start, i, m.second_start, j)
                                        min(code.second_end, code.second_start + n)));
                 res.push(group.clone());
                 group.clear();
-                first_start = max(first_start, code.first_end - n);
-                second_start = max(second_start, code.second_end - n);
+                first_start = max(first_start, code.first_end.saturating_sub(n));
+                second_start = max(second_start, code.second_end.saturating_sub(n));
             }
             group.push(Opcode::new(code.tag.clone(),
                                    first_start,
