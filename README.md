@@ -8,7 +8,7 @@ Simply add difflib to your dependencies block in Cargo.toml
 
 ```rust
 [dependencies]
-difflib = "0.1"
+difflib = "0.3.0"
 ```
 
 ## Documentation
