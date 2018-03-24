@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::cmp::{max, min};
 use utils::calculate_ratio;
 use std::fmt::Debug;
@@ -110,7 +110,7 @@ pub struct SequenceMatcher<'a, T: 'a + ?Sized + Sequence> {
     opcodes: Option<Vec<Opcode>>,
     is_junk: Option<fn(&str) -> bool>,
     second_sequence_elements: HashMap<&'a str, Vec<usize>>,
-    second_sequence_popular: Vec<&'a str>,
+    second_sequence_popular: HashSet<&'a str>,
 }
 
 
@@ -123,7 +123,7 @@ impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T> {
             opcodes: None,
             is_junk: None,
             second_sequence_elements: HashMap::new(),
-            second_sequence_popular: Vec::new(),
+            second_sequence_popular: HashSet::new(),
         };
         matcher.set_seqs(first_sequence, second_sequence);
         matcher
@@ -171,13 +171,13 @@ impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T> {
                 second_sequence_elements.remove(element);
             }
         }
-        let mut popular = Vec::new();
+        let mut popular = HashSet::new();
         let len = second_sequence.len();
         if len >= 200 {
             let test_len = (len as f32 / 100.0).floor() as usize + 1;
             for (element, indexes) in second_sequence_elements.iter() {
                 if indexes.len() > test_len {
-                    popular.push(element.clone());
+                    popular.insert(element.clone());
                 }
             }
             for element in &popular {
