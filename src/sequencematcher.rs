@@ -1,7 +1,7 @@
-use std::collections::{HashMap, HashSet};
 use std::cmp::{max, min};
-use utils::calculate_ratio;
+use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
+use utils::calculate_ratio;
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
 pub struct Match {
@@ -30,12 +30,13 @@ pub struct Opcode {
 }
 
 impl Opcode {
-    fn new(tag: String,
-           first_start: usize,
-           first_end: usize,
-           second_start: usize,
-           second_end: usize)
-           -> Opcode {
+    fn new(
+        tag: String,
+        first_start: usize,
+        first_end: usize,
+        second_start: usize,
+        second_end: usize,
+    ) -> Opcode {
         Opcode {
             tag: tag,
             first_start: first_start,
@@ -113,7 +114,6 @@ pub struct SequenceMatcher<'a, T: 'a + ?Sized + Sequence> {
     second_sequence_popular: HashSet<&'a str>,
 }
 
-
 impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T> {
     pub fn new(first_sequence: &'a T, second_sequence: &'a T) -> SequenceMatcher<'a, T> {
         let mut matcher = SequenceMatcher {
@@ -156,7 +156,8 @@ impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T> {
         let second_sequence = self.second_sequence;
         let mut second_sequence_elements = HashMap::new();
         for i in 0..second_sequence.len() {
-            let mut counter = second_sequence_elements.entry(second_sequence.at_index(i).unwrap())
+            let mut counter = second_sequence_elements
+                .entry(second_sequence.at_index(i).unwrap())
                 .or_insert(Vec::new());
             counter.push(i);
         }
@@ -188,12 +189,13 @@ impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T> {
         self.second_sequence_popular = popular;
     }
 
-    pub fn find_longest_match(&self,
-                              first_start: usize,
-                              first_end: usize,
-                              second_start: usize,
-                              second_end: usize)
-                              -> Match {
+    pub fn find_longest_match(
+        &self,
+        first_start: usize,
+        first_end: usize,
+        second_start: usize,
+        second_end: usize,
+    ) -> Match {
         let first_sequence = &self.first_sequence;
         let second_sequence = &self.second_sequence;
         let second_sequence_elements = &self.second_sequence_elements;
@@ -234,15 +236,18 @@ impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T> {
             j2len = new_j2len;
         }
         for _ in 0..2 {
-            while best_i > first_start && best_j > second_start &&
-                  first_sequence.at_index(best_i - 1) == second_sequence.at_index(best_j - 1) {
+            while best_i > first_start
+                && best_j > second_start
+                && first_sequence.at_index(best_i - 1) == second_sequence.at_index(best_j - 1)
+            {
                 best_i = best_i - 1;
                 best_j = best_j - 1;
                 best_size = best_size + 1;
             }
-            while best_i + best_size < first_end && best_j + best_size < second_end &&
-                  first_sequence.at_index(best_i + best_size) ==
-                  second_sequence.at_index(best_j + best_size) {
+            while best_i + best_size < first_end && best_j + best_size < second_end
+                && first_sequence.at_index(best_i + best_size)
+                    == second_sequence.at_index(best_j + best_size)
+            {
                 best_size += 1;
             }
         }
@@ -266,10 +271,12 @@ impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T> {
                         queue.push((first_start, m.first_start, second_start, m.second_start));
                     }
                     if m.first_start + m.size < first_end && m.second_start + m.size < second_end {
-                        queue.push((m.first_start + m.size,
-                                    first_end,
-                                    m.second_start + m.size,
-                                    second_end));
+                        queue.push((
+                            m.first_start + m.size,
+                            first_end,
+                            m.second_start + m.size,
+                            second_end,
+                        ));
                     }
                     matches.push(m);
                 }
@@ -319,9 +326,13 @@ impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T> {
             i = m.first_start + m.size;
             j = m.second_start + m.size;
             if m.size != 0 {
-                opcodes.push(
-Opcode::new(String::from("equal"), m.first_start, i, m.second_start, j)
-);
+                opcodes.push(Opcode::new(
+                    String::from("equal"),
+                    m.first_start,
+                    i,
+                    m.second_start,
+                    j,
+                ));
             }
         }
         self.opcodes = Some(opcodes);
@@ -350,21 +361,25 @@ Opcode::new(String::from("equal"), m.first_start, i, m.second_start, j)
         for code in &codes {
             let (mut first_start, mut second_start) = (code.first_start, code.second_start);
             if code.tag == "equal" && code.first_end - code.first_start > nn {
-                group.push(Opcode::new(code.tag.clone(),
-                                       code.first_start,
-                                       min(code.first_end, code.first_start + n),
-                                       code.second_start,
-                                       min(code.second_end, code.second_start + n)));
+                group.push(Opcode::new(
+                    code.tag.clone(),
+                    code.first_start,
+                    min(code.first_end, code.first_start + n),
+                    code.second_start,
+                    min(code.second_end, code.second_start + n),
+                ));
                 res.push(group.clone());
                 group.clear();
                 first_start = max(first_start, code.first_end.saturating_sub(n));
                 second_start = max(second_start, code.second_end.saturating_sub(n));
             }
-            group.push(Opcode::new(code.tag.clone(),
-                                   first_start,
-                                   code.first_end,
-                                   second_start,
-                                   code.second_end));
+            group.push(Opcode::new(
+                code.tag.clone(),
+                first_start,
+                code.first_end,
+                second_start,
+                code.second_end,
+            ));
         }
         if !group.is_empty() && !(group.len() == 1 && group.first().unwrap().tag == "equal") {
             res.push(group.clone());
@@ -373,8 +388,12 @@ Opcode::new(String::from("equal"), m.first_start, i, m.second_start, j)
     }
 
     pub fn ratio(&mut self) -> f32 {
-        let matches = self.get_matching_blocks().iter().fold(0, |res, &m| res + m.size);
-        calculate_ratio(matches,
-                        self.first_sequence.len() + self.second_sequence.len())
+        let matches = self.get_matching_blocks()
+            .iter()
+            .fold(0, |res, &m| res + m.size);
+        calculate_ratio(
+            matches,
+            self.first_sequence.len() + self.second_sequence.len(),
+        )
     }
 }

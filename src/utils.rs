@@ -5,7 +5,6 @@ pub fn calculate_ratio(matches: usize, length: usize) -> f32 {
     return 1.0;
 }
 
-
 pub fn str_with_similar_chars(c: char, length: usize) -> String {
     let mut s = String::new();
     for _ in 0..length {
@@ -13,7 +12,6 @@ pub fn str_with_similar_chars(c: char, length: usize) -> String {
     }
     s
 }
-
 
 pub fn count_leading(line: &str, c: char) -> usize {
     let (mut i, n) = (0, line.len());
@@ -23,7 +21,6 @@ pub fn count_leading(line: &str, c: char) -> usize {
     }
     return i;
 }
-
 
 pub fn format_range_unified(start: usize, end: usize) -> String {
     let mut beginning = start + 1;
@@ -36,7 +33,6 @@ pub fn format_range_unified(start: usize, end: usize) -> String {
     }
     format!("{},{}", beginning, length)
 }
-
 
 pub fn format_range_context(start: usize, end: usize) -> String {
     let mut beginning = start + 1;
