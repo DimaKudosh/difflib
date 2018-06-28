@@ -347,12 +347,12 @@ impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T> {
         }
 
         if codes.first().unwrap().tag == "equal" {
-            let mut opcode = codes.first_mut().unwrap();
+            let opcode = codes.first_mut().unwrap();
             opcode.first_start = max(opcode.first_start, opcode.first_end.saturating_sub(n));
             opcode.second_start = max(opcode.second_start, opcode.second_end.saturating_sub(n));
         }
         if codes.last().unwrap().tag == "equal" {
-            let mut opcode = codes.last_mut().unwrap();
+            let opcode = codes.last_mut().unwrap();
             opcode.first_end = min(opcode.first_start + n, opcode.first_end);
             opcode.second_end = min(opcode.second_start + n, opcode.second_end);
         }
