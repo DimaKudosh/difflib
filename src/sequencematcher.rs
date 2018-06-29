@@ -111,7 +111,6 @@ pub struct SequenceMatcher<'a, T: 'a + ?Sized + Sequence> {
     opcodes: Option<Vec<Opcode>>,
     is_junk: Option<fn(&str) -> bool>,
     second_sequence_elements: HashMap<&'a str, Vec<usize>>,
-    second_sequence_popular: HashSet<&'a str>,
 }
 
 impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T> {
@@ -123,7 +122,6 @@ impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T> {
             opcodes: None,
             is_junk: None,
             second_sequence_elements: HashMap::new(),
-            second_sequence_popular: HashSet::new(),
         };
         matcher.set_seqs(first_sequence, second_sequence);
         matcher
@@ -186,7 +184,6 @@ impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T> {
             }
         }
         self.second_sequence_elements = second_sequence_elements;
-        self.second_sequence_popular = popular;
     }
 
     pub fn find_longest_match(
