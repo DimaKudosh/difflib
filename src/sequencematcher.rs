@@ -104,6 +104,19 @@ impl<'a> Sequence for Vec<String> {
     }
 }
 
+impl<'a> Sequence for [&'a str] {
+    fn len(&self) -> usize {
+        self.len()
+    }
+
+    fn at_index(&self, index: usize) -> Option<&str> {
+        if index < self.len() {
+            return Some(self[index]);
+        }
+        None
+    }
+}
+
 pub struct SequenceMatcher<'a, T: 'a + ?Sized + Sequence> {
     first_sequence: &'a T,
     second_sequence: &'a T,

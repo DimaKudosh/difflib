@@ -1,4 +1,4 @@
-use sequencematcher::{Sequence, SequenceMatcher};
+use sequencematcher::SequenceMatcher;
 use std::cmp;
 use utils::{count_leading, str_with_similar_chars};
 
@@ -15,11 +15,7 @@ impl Differ {
         }
     }
 
-    pub fn compare<T: ?Sized + Sequence>(
-        &self,
-        first_sequence: &T,
-        second_sequence: &T,
-    ) -> Vec<String> {
+    pub fn compare(&self, first_sequence: &[&str], second_sequence: &[&str]) -> Vec<String> {
         let mut matcher = SequenceMatcher::new(first_sequence, second_sequence);
         matcher.set_is_junk(self.line_junk);
         let mut res = Vec::new();
@@ -54,16 +50,10 @@ impl Differ {
         res
     }
 
-    fn dump<T: ?Sized + Sequence>(
-        &self,
-        tag: &str,
-        sequence: &T,
-        start: usize,
-        end: usize,
-    ) -> Vec<String> {
+    fn dump(&self, tag: &str, sequence: &[&str], start: usize, end: usize) -> Vec<String> {
         let mut res = Vec::new();
         for i in start..end {
-            match sequence.at_index(i) {
+            match sequence.get(i) {
                 Some(s) => res.push(format!("{} {}", tag, s)),
                 None => {}
             }
@@ -71,12 +61,12 @@ impl Differ {
         res
     }
 
-    fn plain_replace<T: ?Sized + Sequence>(
+    fn plain_replace(
         &self,
-        first_sequence: &T,
+        first_sequence: &[&str],
         first_start: usize,
         first_end: usize,
-        second_sequence: &T,
+        second_sequence: &[&str],
         second_start: usize,
         second_end: usize,
     ) -> Vec<String> {
@@ -98,12 +88,12 @@ impl Differ {
         first
     }
 
-    fn fancy_replace<T: ?Sized + Sequence>(
+    fn fancy_replace(
         &self,
-        first_sequence: &T,
+        first_sequence: &[&str],
         first_start: usize,
         first_end: usize,
-        second_sequence: &T,
+        second_sequence: &[&str],
         second_start: usize,
         second_end: usize,
     ) -> Vec<String> {
@@ -114,9 +104,9 @@ impl Differ {
         let mut eqi: Option<usize> = None;
         let mut eqj: Option<usize> = None;
         for j in second_start..second_end {
-            second_sequence_str = second_sequence.at_index(j).unwrap();
+            second_sequence_str = &second_sequence[j];
             for i in first_start..first_end {
-                first_sequence_str = first_sequence.at_index(i).unwrap();
+                first_sequence_str = &first_sequence[i];
                 if first_sequence_str == second_sequence_str {
                     if eqi.is_none() {
                         eqi = Some(i);
@@ -124,7 +114,7 @@ impl Differ {
                     }
                     continue;
                 }
-                let mut cruncher = SequenceMatcher::new(first_sequence_str, second_sequence_str);
+                let mut cruncher = SequenceMatcher::new(*first_sequence_str, *second_sequence_str);
                 cruncher.set_is_junk(self.char_junk);
                 if cruncher.ratio() > best_ratio {
                     best_ratio = cruncher.ratio();
@@ -164,13 +154,11 @@ impl Differ {
             ).iter()
                 .cloned(),
         );
-        let (first_element, second_element) = (
-            first_sequence.at_index(best_i).unwrap(),
-            second_sequence.at_index(best_j).unwrap(),
-        );
+        let first_element = &first_sequence[best_i];
+        let second_element = &second_sequence[best_j];
         if eqi.is_none() {
             let (mut first_tag, mut second_tag) = (String::new(), String::new());
-            let mut cruncher = SequenceMatcher::new(first_element, second_element);
+            let mut cruncher = SequenceMatcher::new(*first_element, second_element);
             cruncher.set_is_junk(self.char_junk);
             for opcode in &cruncher.get_opcodes() {
                 let (first_length, second_length) = (
@@ -219,12 +207,12 @@ impl Differ {
         res
     }
 
-    fn fancy_helper<T: ?Sized + Sequence>(
+    fn fancy_helper(
         &self,
-        first_sequence: &T,
+        first_sequence: &[&str],
         first_start: usize,
         first_end: usize,
-        second_sequence: &T,
+        second_sequence: &[&str],
         second_start: usize,
         second_end: usize,
     ) -> Vec<String> {
