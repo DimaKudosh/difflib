@@ -13,9 +13,9 @@ pub struct Match {
 impl Match {
     fn new(first_start: usize, second_start: usize, size: usize) -> Match {
         Match {
-            first_start: first_start,
-            second_start: second_start,
-            size: size,
+            first_start,
+            second_start,
+            size,
         }
     }
 }
@@ -38,11 +38,11 @@ impl Opcode {
         second_end: usize,
     ) -> Opcode {
         Opcode {
-            tag: tag,
-            first_start: first_start,
-            first_end: first_end,
-            second_start: second_start,
-            second_end: second_end,
+            tag,
+            first_start,
+            first_end,
+            second_start,
+            second_end,
         }
     }
 }
@@ -129,8 +129,8 @@ pub struct SequenceMatcher<'a, T: 'a + ?Sized + Sequence> {
 impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T> {
     pub fn new(first_sequence: &'a T, second_sequence: &'a T) -> SequenceMatcher<'a, T> {
         let mut matcher = SequenceMatcher {
-            first_sequence: first_sequence,
-            second_sequence: second_sequence,
+            first_sequence,
+            second_sequence,
             matching_blocks: None,
             opcodes: None,
             is_junk: None,
@@ -169,7 +169,7 @@ impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T> {
         for i in 0..second_sequence.len() {
             let mut counter = second_sequence_elements
                 .entry(second_sequence.at_index(i).unwrap())
-                .or_insert(Vec::new());
+                .or_insert_with(Vec::new);
             counter.push(i);
         }
         if let Some(junk_func) = self.is_junk {
@@ -204,35 +204,30 @@ impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T> {
         let mut j2len: HashMap<usize, usize> = HashMap::new();
         for i in first_start..first_end {
             let mut new_j2len: HashMap<usize, usize> = HashMap::new();
-            match second_sequence_elements.get(first_sequence.at_index(i).unwrap()) {
-                Some(indexes) => {
-                    for j in indexes {
-                        let j = j.clone();
-                        if j < second_start {
-                            continue;
-                        };
-                        if j >= second_end {
-                            break;
-                        };
-                        let mut size = 0;
-                        if j > 0 {
-                            match j2len.get(&(j - 1)) {
-                                Some(k) => {
-                                    size = k.clone();
-                                }
-                                None => {}
-                            }
-                        }
-                        size += 1;
-                        new_j2len.insert(j, size);
-                        if size > best_size {
-                            best_i = i + 1 - size;
-                            best_j = j + 1 - size;
-                            best_size = size;
+            if let Some(indexes) = second_sequence_elements.get(first_sequence.at_index(i).unwrap())
+            {
+                for j in indexes {
+                    let j = *j;
+                    if j < second_start {
+                        continue;
+                    };
+                    if j >= second_end {
+                        break;
+                    };
+                    let mut size = 0;
+                    if j > 0 {
+                        if let Some(k) = j2len.get(&(j - 1)) {
+                            size = *k;
                         }
                     }
+                    size += 1;
+                    new_j2len.insert(j, size);
+                    if size > best_size {
+                        best_i = i + 1 - size;
+                        best_j = j + 1 - size;
+                        best_size = size;
+                    }
                 }
-                None => {}
             }
             j2len = new_j2len;
         }
@@ -241,9 +236,9 @@ impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T> {
                 && best_j > second_start
                 && first_sequence.at_index(best_i - 1) == second_sequence.at_index(best_j - 1)
             {
-                best_i = best_i - 1;
-                best_j = best_j - 1;
-                best_size = best_size + 1;
+                best_i -= 1;
+                best_j -= 1;
+                best_size += 1;
             }
             while best_i + best_size < first_end && best_j + best_size < second_end
                 && first_sequence.at_index(best_i + best_size)
@@ -337,7 +332,7 @@ impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T> {
             }
         }
         self.opcodes = Some(opcodes);
-        return self.opcodes.as_ref().unwrap().clone();
+        self.opcodes.as_ref().unwrap().clone()
     }
 
     pub fn get_grouped_opcodes(&mut self, n: usize) -> Vec<Vec<Opcode>> {
@@ -382,7 +377,7 @@ impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T> {
                 code.second_end,
             ));
         }
-        if !group.is_empty() && !(group.len() == 1 && group.first().unwrap().tag == "equal") {
+        if !(group.len() == 1 && group.first().unwrap().tag == "equal") || group.is_empty() {
             res.push(group.clone());
         }
         res

@@ -122,7 +122,7 @@ pub fn context_diff<T: Sequence>(
                     for i in opcode.first_start..opcode.first_end {
                         res.push(format!(
                             "{}{}",
-                            prefix.get(&opcode.tag).unwrap(),
+                            &prefix[&opcode.tag],
                             first_sequence.at_index(i).unwrap()
                         ));
                     }
@@ -144,7 +144,7 @@ pub fn context_diff<T: Sequence>(
                     for i in opcode.second_start..opcode.second_end {
                         res.push(format!(
                             "{}{}",
-                            prefix.get(&opcode.tag).unwrap(),
+                            &prefix[&opcode.tag],
                             second_sequence.at_index(i).unwrap()
                         ));
                     }

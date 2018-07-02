@@ -2,7 +2,7 @@ pub fn calculate_ratio(matches: usize, length: usize) -> f32 {
     if length != 0 {
         return 2.0 * matches as f32 / length as f32;
     }
-    return 1.0;
+    1.0
 }
 
 pub fn str_with_similar_chars(c: char, length: usize) -> String {
@@ -19,7 +19,7 @@ pub fn count_leading(line: &str, c: char) -> usize {
     while (i < n) && line[i] == c {
         i += 1;
     }
-    return i;
+    i
 }
 
 pub fn format_range_unified(start: usize, end: usize) -> String {

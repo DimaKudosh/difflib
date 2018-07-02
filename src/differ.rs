@@ -2,6 +2,7 @@ use sequencematcher::SequenceMatcher;
 use std::cmp;
 use utils::{count_leading, str_with_similar_chars};
 
+#[derive(Default)]
 pub struct Differ {
     pub line_junk: Option<fn(&str) -> bool>,
     pub char_junk: Option<fn(&str) -> bool>,
@@ -53,9 +54,8 @@ impl Differ {
     fn dump(&self, tag: &str, sequence: &[&str], start: usize, end: usize) -> Vec<String> {
         let mut res = Vec::new();
         for i in start..end {
-            match sequence.get(i) {
-                Some(s) => res.push(format!("{} {}", tag, s)),
-                None => {}
+            if let Some(s) = sequence.get(i) {
+                res.push(format!("{} {}", tag, s))
             }
         }
         res
@@ -73,15 +73,17 @@ impl Differ {
         if !(first_start < first_end && second_start < second_end) {
             return Vec::new();
         }
-        let mut first;
-        let second;
-        if second_end - second_start < first_end - first_start {
-            first = self.dump("+", second_sequence, second_start, second_end);
-            second = self.dump("-", first_sequence, first_start, first_end);
+        let (mut first, second) = if second_end - second_start < first_end - first_start {
+            (
+                self.dump("+", second_sequence, second_start, second_end),
+                self.dump("-", first_sequence, first_start, first_end),
+            )
         } else {
-            first = self.dump("-", first_sequence, first_start, first_end);
-            second = self.dump("+", second_sequence, second_start, second_end);
-        }
+            (
+                self.dump("-", first_sequence, first_start, first_end),
+                self.dump("+", second_sequence, second_start, second_end),
+            )
+        };
         for s in second {
             first.push(s);
         }
@@ -100,13 +102,20 @@ impl Differ {
         let mut res = Vec::new();
         let (mut best_ratio, cutoff) = (0.74, 0.75);
         let (mut best_i, mut best_j) = (0, 0);
-        let (mut second_sequence_str, mut first_sequence_str);
         let mut eqi: Option<usize> = None;
         let mut eqj: Option<usize> = None;
-        for j in second_start..second_end {
-            second_sequence_str = &second_sequence[j];
-            for i in first_start..first_end {
-                first_sequence_str = &first_sequence[i];
+        for (j, second_sequence_str) in second_sequence
+            .iter()
+            .enumerate()
+            .take(second_end)
+            .skip(second_start)
+        {
+            for (i, first_sequence_str) in first_sequence
+                .iter()
+                .enumerate()
+                .take(second_end)
+                .skip(second_start)
+            {
                 if first_sequence_str == second_sequence_str {
                     if eqi.is_none() {
                         eqi = Some(i);
@@ -254,40 +263,31 @@ impl Differ {
         common = cmp::min(common, count_leading(first_tags.split_at(common).0, ' '));
         first_tags = first_tags.split_at(common).1.trim_right();
         second_tags = second_tags.split_at(common).1.trim_right();
-        let mut s = String::from(format!("- {}", first_line));
+        let mut s = format!("- {}", first_line);
         res.push(s);
         if first_tags != "" {
-            s = String::from(format!(
-                "? {}{}\n",
-                str_with_similar_chars('\t', common),
-                first_tags
-            ));
+            s = format!("? {}{}\n", str_with_similar_chars('\t', common), first_tags);
             res.push(s);
         }
-        s = String::from(format!("+ {}", second_line));
+        s = format!("+ {}", second_line);
         res.push(s);
         if second_tags != "" {
-            s = String::from(format!(
+            s = format!(
                 "? {}{}\n",
                 str_with_similar_chars('\t', common),
                 second_tags
-            ));
+            );
             res.push(s);
         }
         res
     }
 
-    pub fn restore(delta: &Vec<String>, which: usize) -> Vec<String> {
+    pub fn restore(delta: &[String], which: usize) -> Vec<String> {
         if !(which == 1 || which == 2) {
             panic!("Second parameter must be 1 or 2");
         }
         let mut res = Vec::new();
-        let tag;
-        if which == 1 {
-            tag = "- ".to_string();
-        } else {
-            tag = "+ ".to_string();
-        }
+        let tag = if which == 1 { "- " } else { "+ " }.to_string();
         let prefixes = vec![tag, "  ".to_string()];
         for line in delta {
             for prefix in &prefixes {
