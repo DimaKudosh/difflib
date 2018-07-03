@@ -4,8 +4,8 @@ use utils::{count_leading, str_with_similar_chars};
 
 #[derive(Default)]
 pub struct Differ {
-    pub line_junk: Option<fn(&str) -> bool>,
-    pub char_junk: Option<fn(&str) -> bool>,
+    pub line_junk: Option<fn(&&str) -> bool>,
+    pub char_junk: Option<fn(&char) -> bool>,
 }
 
 impl Differ {
@@ -123,7 +123,12 @@ impl Differ {
                     }
                     continue;
                 }
-                let mut cruncher = SequenceMatcher::new(*first_sequence_str, *second_sequence_str);
+                let (first_sequence_chars, second_sequence_chars) = (
+                    first_sequence_str.chars().collect::<Vec<char>>(),
+                    second_sequence_str.chars().collect::<Vec<char>>(),
+                );
+                let mut cruncher =
+                    SequenceMatcher::new(&first_sequence_chars, &second_sequence_chars);
                 cruncher.set_is_junk(self.char_junk);
                 if cruncher.ratio() > best_ratio {
                     best_ratio = cruncher.ratio();
@@ -167,7 +172,9 @@ impl Differ {
         let second_element = &second_sequence[best_j];
         if eqi.is_none() {
             let (mut first_tag, mut second_tag) = (String::new(), String::new());
-            let mut cruncher = SequenceMatcher::new(*first_element, second_element);
+            let first_element_chars: Vec<char> = first_element.chars().collect();
+            let second_element_chars: Vec<char> = second_element.chars().collect();
+            let mut cruncher = SequenceMatcher::new(&first_element_chars, &second_element_chars);
             cruncher.set_is_junk(self.char_junk);
             for opcode in &cruncher.get_opcodes() {
                 let (first_length, second_length) = (

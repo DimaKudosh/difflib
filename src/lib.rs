@@ -4,6 +4,7 @@ mod utils;
 
 use sequencematcher::{Sequence, SequenceMatcher};
 use std::collections::HashMap;
+use std::fmt::Display;
 use utils::{format_range_context, format_range_unified};
 
 pub fn get_close_matches<'a>(
@@ -16,9 +17,9 @@ pub fn get_close_matches<'a>(
         panic!("Cutoff must be greater than 0.0 and lower than 1.0");
     }
     let mut res: Vec<(f32, &str)> = Vec::new();
-    let mut matcher = SequenceMatcher::new("", word);
+    let mut matcher = SequenceMatcher::new(b"", word.as_bytes());
     for i in &possibilities {
-        matcher.set_first_seq(i);
+        matcher.set_first_seq(i.as_bytes());
         let ratio = matcher.ratio();
         if ratio >= cutoff {
             res.push((ratio, i));
@@ -29,9 +30,9 @@ pub fn get_close_matches<'a>(
     res.iter().map(|x| x.1).collect()
 }
 
-pub fn unified_diff<T: Sequence>(
-    first_sequence: &T,
-    second_sequence: &T,
+pub fn unified_diff<T: Sequence + Display>(
+    first_sequence: &[T],
+    second_sequence: &[T],
     from_file: &str,
     to_file: &str,
     from_file_date: &str,
@@ -59,19 +60,31 @@ pub fn unified_diff<T: Sequence>(
         ));
         for code in group {
             if code.tag == "equal" {
-                for i in code.first_start..code.first_end {
-                    res.push(format!(" {}", first_sequence.at_index(i).unwrap()));
+                for item in first_sequence
+                    .iter()
+                    .take(code.first_end)
+                    .skip(code.first_start)
+                {
+                    res.push(format!(" {}", item));
                 }
                 continue;
             }
             if code.tag == "replace" || code.tag == "delete" {
-                for i in code.first_start..code.first_end {
-                    res.push(format!("-{}", first_sequence.at_index(i).unwrap()));
+                for item in first_sequence
+                    .iter()
+                    .take(code.first_end)
+                    .skip(code.first_start)
+                {
+                    res.push(format!("-{}", item));
                 }
             }
             if code.tag == "replace" || code.tag == "insert" {
-                for i in code.second_start..code.second_end {
-                    res.push(format!("+{}", second_sequence.at_index(i).unwrap()));
+                for item in second_sequence
+                    .iter()
+                    .take(code.second_end)
+                    .skip(code.second_start)
+                {
+                    res.push(format!("+{}", item));
                 }
             }
         }
@@ -79,9 +92,9 @@ pub fn unified_diff<T: Sequence>(
     res
 }
 
-pub fn context_diff<T: Sequence>(
-    first_sequence: &T,
-    second_sequence: &T,
+pub fn context_diff<T: Sequence + Display>(
+    first_sequence: &[T],
+    second_sequence: &[T],
     from_file: &str,
     to_file: &str,
     from_file_date: &str,
@@ -119,12 +132,12 @@ pub fn context_diff<T: Sequence>(
         if any {
             for opcode in group {
                 if opcode.tag != "insert" {
-                    for i in opcode.first_start..opcode.first_end {
-                        res.push(format!(
-                            "{}{}",
-                            &prefix[&opcode.tag],
-                            first_sequence.at_index(i).unwrap()
-                        ));
+                    for item in first_sequence
+                        .iter()
+                        .take(opcode.first_end)
+                        .skip(opcode.first_start)
+                    {
+                        res.push(format!("{}{}", &prefix[&opcode.tag], item));
                     }
                 }
             }
@@ -141,12 +154,12 @@ pub fn context_diff<T: Sequence>(
         if any {
             for opcode in group {
                 if opcode.tag != "delete" {
-                    for i in opcode.second_start..opcode.second_end {
-                        res.push(format!(
-                            "{}{}",
-                            &prefix[&opcode.tag],
-                            second_sequence.at_index(i).unwrap()
-                        ));
+                    for item in second_sequence
+                        .iter()
+                        .take(opcode.second_end)
+                        .skip(opcode.second_start)
+                    {
+                        res.push(format!("{}{}", prefix[&opcode.tag], item));
                     }
                 }
             }

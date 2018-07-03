@@ -5,7 +5,7 @@ use difflib::sequencematcher::{Match, Opcode, SequenceMatcher};
 
 #[test]
 fn test_longest_match() {
-    let matcher = SequenceMatcher::new(" abcd", "abcd abcd");
+    let matcher = SequenceMatcher::new(b" abcd", b"abcd abcd");
     let m = matcher.find_longest_match(0, 5, 0, 9);
     assert_eq!(m.first_start, 0);
     assert_eq!(m.second_start, 4);
@@ -14,7 +14,7 @@ fn test_longest_match() {
 
 #[test]
 fn test_all_matches() {
-    let mut matcher = SequenceMatcher::new("abxcd", "abcd");
+    let mut matcher = SequenceMatcher::new(b"abxcd", b"abcd");
     let result = matcher.get_matching_blocks();
     let mut expected_result = Vec::new();
     expected_result.push(Match {
@@ -37,7 +37,7 @@ fn test_all_matches() {
 
 #[test]
 fn test_get_opcodes() {
-    let mut matcher = SequenceMatcher::new("qabxcd", "abycdf");
+    let mut matcher = SequenceMatcher::new(b"qabxcd", b"abycdf");
     let result = matcher.get_opcodes();
     let mut expected_result = Vec::new();
     expected_result.push(Opcode {
@@ -80,7 +80,7 @@ fn test_get_opcodes() {
 
 #[test]
 fn test_ratio() {
-    let mut matcher = SequenceMatcher::new("abcd", "bcde");
+    let mut matcher = SequenceMatcher::new(b"abcd", b"bcde");
     assert_eq!(matcher.ratio(), 0.75);
 }
 
@@ -103,8 +103,8 @@ fn test_differ_compare() {
     );
 }
 
-fn is_junk_char(ch: &str) -> bool {
-    if ch == " " || ch == "\t" {
+fn is_junk_char(ch: &char) -> bool {
+    if *ch == ' ' || *ch == '\t' {
         return true;
     }
     false

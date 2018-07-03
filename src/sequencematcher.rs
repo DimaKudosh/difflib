@@ -1,6 +1,6 @@
 use std::cmp::{max, min};
 use std::collections::HashMap;
-use std::fmt::Debug;
+use std::hash::Hash;
 use utils::calculate_ratio;
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
@@ -47,87 +47,20 @@ impl Opcode {
     }
 }
 
-pub trait Sequence: Debug {
-    fn len(&self) -> usize;
-    fn at_index(&self, index: usize) -> Option<&str>;
-}
+pub trait Sequence: Eq + Hash {}
+impl<T: Eq + Hash> Sequence for T {}
 
-impl Sequence for str {
-    fn len(&self) -> usize {
-        self.len()
-    }
-
-    fn at_index(&self, index: usize) -> Option<&str> {
-        if index > self.len() {
-            return None;
-        }
-        unsafe { Some(self.slice_unchecked(index, index + 1)) }
-    }
-}
-
-impl<'a> Sequence for Vec<&'a str> {
-    fn len(&self) -> usize {
-        self.len()
-    }
-
-    fn at_index(&self, index: usize) -> Option<&str> {
-        if index < self.len() {
-            return Some(self[index]);
-        }
-        None
-    }
-}
-
-impl Sequence for String {
-    fn len(&self) -> usize {
-        self.len()
-    }
-
-    fn at_index(&self, index: usize) -> Option<&str> {
-        if index > self.len() {
-            return None;
-        }
-        unsafe { Some(self.slice_unchecked(index, index + 1)) }
-    }
-}
-
-impl<'a> Sequence for Vec<String> {
-    fn len(&self) -> usize {
-        self.len()
-    }
-
-    fn at_index(&self, index: usize) -> Option<&str> {
-        if index < self.len() {
-            return Some(&self[index]);
-        }
-        None
-    }
-}
-
-impl<'a> Sequence for [&'a str] {
-    fn len(&self) -> usize {
-        self.len()
-    }
-
-    fn at_index(&self, index: usize) -> Option<&str> {
-        if index < self.len() {
-            return Some(self[index]);
-        }
-        None
-    }
-}
-
-pub struct SequenceMatcher<'a, T: 'a + ?Sized + Sequence> {
-    first_sequence: &'a T,
-    second_sequence: &'a T,
+pub struct SequenceMatcher<'a, T: 'a + Sequence> {
+    first_sequence: &'a [T],
+    second_sequence: &'a [T],
     matching_blocks: Option<Vec<Match>>,
     opcodes: Option<Vec<Opcode>>,
-    is_junk: Option<fn(&str) -> bool>,
-    second_sequence_elements: HashMap<&'a str, Vec<usize>>,
+    is_junk: Option<fn(&T) -> bool>,
+    second_sequence_elements: HashMap<&'a T, Vec<usize>>,
 }
 
-impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T> {
-    pub fn new(first_sequence: &'a T, second_sequence: &'a T) -> SequenceMatcher<'a, T> {
+impl<'a, T: Sequence> SequenceMatcher<'a, T> {
+    pub fn new(first_sequence: &'a [T], second_sequence: &'a [T]) -> SequenceMatcher<'a, T> {
         let mut matcher = SequenceMatcher {
             first_sequence,
             second_sequence,
@@ -140,23 +73,23 @@ impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T> {
         matcher
     }
 
-    pub fn set_is_junk(&mut self, is_junk: Option<fn(&str) -> bool>) {
+    pub fn set_is_junk(&mut self, is_junk: Option<fn(&T) -> bool>) {
         self.is_junk = is_junk;
         self.set_second_seq(self.second_sequence);
     }
 
-    pub fn set_seqs(&mut self, first_sequence: &'a T, second_sequence: &'a T) {
+    pub fn set_seqs(&mut self, first_sequence: &'a [T], second_sequence: &'a [T]) {
         self.set_first_seq(first_sequence);
         self.set_second_seq(second_sequence);
     }
 
-    pub fn set_first_seq(&mut self, sequence: &'a T) {
+    pub fn set_first_seq(&mut self, sequence: &'a [T]) {
         self.first_sequence = sequence;
         self.matching_blocks = None;
         self.opcodes = None;
     }
 
-    pub fn set_second_seq(&mut self, sequence: &'a T) {
+    pub fn set_second_seq(&mut self, sequence: &'a [T]) {
         self.second_sequence = sequence;
         self.matching_blocks = None;
         self.opcodes = None;
@@ -166,9 +99,9 @@ impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T> {
     fn chain_second_seq(&mut self) {
         let second_sequence = self.second_sequence;
         let mut second_sequence_elements = HashMap::new();
-        for i in 0..second_sequence.len() {
+        for (i, item) in second_sequence.iter().enumerate() {
             let mut counter = second_sequence_elements
-                .entry(second_sequence.at_index(i).unwrap())
+                .entry(item)
                 .or_insert_with(Vec::new);
             counter.push(i);
         }
@@ -202,10 +135,14 @@ impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T> {
         let second_sequence_elements = &self.second_sequence_elements;
         let (mut best_i, mut best_j, mut best_size) = (first_start, second_start, 0);
         let mut j2len: HashMap<usize, usize> = HashMap::new();
-        for i in first_start..first_end {
+        for (i, item) in first_sequence
+            .iter()
+            .enumerate()
+            .take(first_end)
+            .skip(first_start)
+        {
             let mut new_j2len: HashMap<usize, usize> = HashMap::new();
-            if let Some(indexes) = second_sequence_elements.get(first_sequence.at_index(i).unwrap())
-            {
+            if let Some(indexes) = second_sequence_elements.get(item) {
                 for j in indexes {
                     let j = *j;
                     if j < second_start {
@@ -234,15 +171,15 @@ impl<'a, T: ?Sized + Sequence> SequenceMatcher<'a, T> {
         for _ in 0..2 {
             while best_i > first_start
                 && best_j > second_start
-                && first_sequence.at_index(best_i - 1) == second_sequence.at_index(best_j - 1)
+                && first_sequence.get(best_i - 1) == second_sequence.get(best_j - 1)
             {
                 best_i -= 1;
                 best_j -= 1;
                 best_size += 1;
             }
-            while best_i + best_size < first_end && best_j + best_size < second_end
-                && first_sequence.at_index(best_i + best_size)
-                    == second_sequence.at_index(best_j + best_size)
+            while best_i + best_size < first_end
+                && best_j + best_size < second_end
+                && first_sequence.get(best_i + best_size) == second_sequence.get(best_j + best_size)
             {
                 best_size += 1;
             }
