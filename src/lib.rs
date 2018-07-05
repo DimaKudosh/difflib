@@ -17,9 +17,9 @@ pub fn get_close_matches<'a>(
         panic!("Cutoff must be greater than 0.0 and lower than 1.0");
     }
     let mut res: Vec<(f32, &str)> = Vec::new();
-    let mut matcher = SequenceMatcher::new(b"", word.as_bytes());
+    let mut matcher = SequenceMatcher::new("", word);
     for i in &possibilities {
-        matcher.set_first_seq(i.as_bytes());
+        matcher.set_first_seq(i);
         let ratio = matcher.ratio();
         if ratio >= cutoff {
             res.push((ratio, i));

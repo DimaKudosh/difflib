@@ -60,10 +60,13 @@ pub struct SequenceMatcher<'a, T: 'a + Sequence> {
 }
 
 impl<'a, T: Sequence> SequenceMatcher<'a, T> {
-    pub fn new(first_sequence: &'a [T], second_sequence: &'a [T]) -> SequenceMatcher<'a, T> {
+    pub fn new<S>(first_sequence: &'a S, second_sequence: &'a S) -> SequenceMatcher<'a, T>
+    where
+        S: AsRef<[T]> + ?Sized,
+    {
         let mut matcher = SequenceMatcher {
-            first_sequence,
-            second_sequence,
+            first_sequence: first_sequence.as_ref(),
+            second_sequence: second_sequence.as_ref(),
             matching_blocks: None,
             opcodes: None,
             is_junk: None,
@@ -75,22 +78,33 @@ impl<'a, T: Sequence> SequenceMatcher<'a, T> {
 
     pub fn set_is_junk(&mut self, is_junk: Option<fn(&T) -> bool>) {
         self.is_junk = is_junk;
-        self.set_second_seq(self.second_sequence);
+        self.matching_blocks = None;
+        self.opcodes = None;
+        self.chain_second_seq();
     }
 
-    pub fn set_seqs(&mut self, first_sequence: &'a [T], second_sequence: &'a [T]) {
+    pub fn set_seqs<S>(&mut self, first_sequence: &'a S, second_sequence: &'a S)
+    where
+        S: AsRef<[T]> + ?Sized,
+    {
         self.set_first_seq(first_sequence);
         self.set_second_seq(second_sequence);
     }
 
-    pub fn set_first_seq(&mut self, sequence: &'a [T]) {
-        self.first_sequence = sequence;
+    pub fn set_first_seq<S>(&mut self, sequence: &'a S)
+    where
+        S: AsRef<[T]> + ?Sized,
+    {
+        self.first_sequence = sequence.as_ref();
         self.matching_blocks = None;
         self.opcodes = None;
     }
 
-    pub fn set_second_seq(&mut self, sequence: &'a [T]) {
-        self.second_sequence = sequence;
+    pub fn set_second_seq<S>(&mut self, sequence: &'a S)
+    where
+        S: AsRef<[T]> + ?Sized,
+    {
+        self.second_sequence = sequence.as_ref();
         self.matching_blocks = None;
         self.opcodes = None;
         self.chain_second_seq();

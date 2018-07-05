@@ -65,7 +65,7 @@ fn main() {
     }
 
     //SequenceMatcher examples
-    let mut matcher = SequenceMatcher::new(b"one two three four", b"zero one tree four");
+    let mut matcher = SequenceMatcher::new("one two three four", "zero one tree four");
     let m = matcher.find_longest_match(0, 18, 0, 18);
     println!("{:?}", m);
     let all_matches = matcher.get_matching_blocks();
@@ -76,7 +76,7 @@ fn main() {
     println!("{:?}", grouped_opcodes);
     let ratio = matcher.ratio();
     println!("{:?}", ratio);
-    matcher.set_seqs(b"aaaaa", b"aaaab");
+    matcher.set_seqs("aaaaa", "aaaab");
     println!("{:?}", matcher.ratio());
 }
 ```
