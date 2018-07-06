@@ -173,3 +173,22 @@ fn test_context_diff() {
          zero  one! tree  four"
     );
 }
+
+#[test]
+fn test_integer_slice() {
+    let s1 = vec![1, 2, 3, 4, 5];
+    let s2 = vec![5, 4, 3, 2, 1];
+    let result = SequenceMatcher::new(&s1, &s2).get_matching_blocks();
+    let mut expected_result = Vec::new();
+    expected_result.push(Match {
+        first_start: 0,
+        second_start: 4,
+        size: 1,
+    });
+    expected_result.push(Match {
+        first_start: 5,
+        second_start: 5,
+        size: 0,
+    });
+    assert_eq!(result, expected_result);
+}
