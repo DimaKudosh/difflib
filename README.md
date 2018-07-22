@@ -1,6 +1,6 @@
 # Difflib [![Build Status](https://travis-ci.org/DimaKudosh/difflib.svg?branch=master)](https://travis-ci.org/DimaKudosh/difflib)
 
-Port of Python's difflib library to Rust. 
+Port of Python's difflib library to Rust.
 It's provide all necessary tools for comparing word sequences.
 
 ## Installation
@@ -8,7 +8,7 @@ Simply add difflib to your dependencies block in Cargo.toml
 
 ```rust
 [dependencies]
-difflib = "0.3.0"
+difflib = "0.4.0"
 ```
 
 ## Documentation
@@ -21,20 +21,33 @@ extern crate difflib;
 use difflib::differ::Differ;
 use difflib::sequencematcher::SequenceMatcher;
 
-
 fn main() {
     // unified_diff
     let first_text = "one two three four".split(" ").collect::<Vec<&str>>();
     let second_text = "zero one tree four".split(" ").collect::<Vec<&str>>();
-    let diff = difflib::unified_diff(&first_text, &second_text, "Original", "Current",
-             "2005-01-26 23:30:50", "2010-04-02 10:20:52", 3);
+    let diff = difflib::unified_diff(
+        &first_text,
+        &second_text,
+        "Original",
+        "Current",
+        "2005-01-26 23:30:50",
+        "2010-04-02 10:20:52",
+        3,
+    );
     for line in &diff {
         println!("{:?}", line);
     }
 
     //context_diff
-    let diff = difflib::context_diff(&first_text, &second_text, "Original", "Current",
-             "2005-01-26 23:30:50", "2010-04-02 10:20:52", 3);
+    let diff = difflib::context_diff(
+        &first_text,
+        &second_text,
+        "Original",
+        "Current",
+        "2005-01-26 23:30:50",
+        "2010-04-02 10:20:52",
+        3,
+    );
     for line in &diff {
         println!("{:?}", line);
     }
@@ -62,7 +75,7 @@ fn main() {
     let grouped_opcodes = matcher.get_grouped_opcodes(2);
     println!("{:?}", grouped_opcodes);
     let ratio = matcher.ratio();
-    println!("{:?}", ratio); 
+    println!("{:?}", ratio);
     matcher.set_seqs("aaaaa", "aaaab");
     println!("{:?}", matcher.ratio());
 }
